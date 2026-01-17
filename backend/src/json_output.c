@@ -10,6 +10,7 @@
 #include <stdarg.h>
 
 #include "json_output.h"
+#include "tlb_sim.h"
 
 #define INITIAL_CAPACITY 4096
 #define GROWTH_FACTOR 2
