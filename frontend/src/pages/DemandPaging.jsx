@@ -33,10 +33,10 @@ function DemandPaging() {
   const [animatingFrame, setAnimatingFrame] = useState(null)
 
   const policies = [
-    { value: 'LRU', label: 'LRU (Least Recently Used)' },
-    { value: 'FIFO', label: 'FIFO (First In First Out)' },
-    { value: 'RANDOM', label: 'Random' },
-    { value: 'CLOCK', label: 'Clock (Second Chance)' }
+    { value: 'LRU', label: 'LRU (Least Recently Used)', desc: 'Evicts the page that was accessed longest ago' },
+    { value: 'FIFO', label: 'FIFO (First In First Out)', desc: 'Evicts the oldest loaded page' },
+    { value: 'RANDOM', label: 'Random', desc: 'Randomly selects a victim page' },
+    { value: 'CLOCK', label: 'Clock (Second Chance)', desc: 'Uses reference bit to give pages a second chance' }
   ]
 
   useEffect(() => {
@@ -170,7 +170,7 @@ function DemandPaging() {
             </div>
           </div>
           
-          {/* Info Box */}
+          {/* Info Box - Dynamic based on policy */}
           <div style={{ 
             padding: 'var(--spacing-md)', 
             background: 'rgba(59, 130, 246, 0.1)', 
@@ -179,9 +179,9 @@ function DemandPaging() {
             marginBottom: 'var(--spacing-lg)',
             fontSize: '0.85rem'
           }}>
-            <strong style={{ color: 'var(--accent-blue)' }}>Demand Paging:</strong>
+            <strong style={{ color: 'var(--accent-blue)' }}>{policies.find(p => p.value === policy)?.label}:</strong>
             <span style={{ color: 'var(--text-secondary)', marginLeft: 'var(--spacing-sm)' }}>
-              Pages are loaded into memory only when accessed. When memory is full, a page must be evicted.
+              {policies.find(p => p.value === policy)?.desc}
             </span>
           </div>
           
