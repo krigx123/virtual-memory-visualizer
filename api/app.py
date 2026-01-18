@@ -28,6 +28,21 @@ tlb_state = {
     'misses': 0
 }
 
+# Demand Paging simulation state
+paging_state = {
+    'initialized': False,
+    'num_frames': 4,           # Number of physical memory frames
+    'policy': 'LRU',           # Replacement policy
+    'frames': [],              # List of frames: [{'vpn': x, 'loaded_at': t, 'last_access': t}, ...]
+    'page_table': {},          # VPN -> frame_index mapping
+    'page_faults': 0,
+    'page_hits': 0,
+    'disk_reads': 0,
+    'access_counter': 0,
+    'access_history': [],      # Recent accesses for visualization
+    'clock_hand': 0            # For Clock algorithm
+}
+
 
 def run_vmem_command(*args):
     """
@@ -402,6 +417,327 @@ def tlb_reset():
     tlb_state['misses'] = 0
     
     return jsonify({'success': True, 'message': 'Statistics reset'})
+
+
+# =============================================================================
+# Demand Paging Simulation Endpoints
+# =============================================================================
+
+@app.route('/api/paging/init', methods=['POST'])
+def init_paging():
+    """Initialize demand paging simulator."""
+    global paging_state
+    
+    data = request.get_json() or {}
+    num_frames = data.get('frames', 4)
+    policy = data.get('policy', 'LRU')
+    
+    if num_frames < 1 or num_frames > 64:
+        return jsonify({'success': False, 'error': 'Frames must be between 1 and 64'})
+    
+    if policy not in ['LRU', 'FIFO', 'RANDOM', 'CLOCK']:
+        return jsonify({'success': False, 'error': 'Invalid policy. Use: LRU, FIFO, RANDOM, CLOCK'})
+    
+    paging_state = {
+        'initialized': True,
+        'num_frames': num_frames,
+        'policy': policy,
+        'frames': [None] * num_frames,  # Each frame: None or {'vpn': x, 'loaded_at': t, 'last_access': t, 'reference_bit': True}
+        'page_table': {},  # VPN -> frame_index
+        'page_faults': 0,
+        'page_hits': 0,
+        'disk_reads': 0,
+        'access_counter': 0,
+        'access_history': [],
+        'clock_hand': 0
+    }
+    
+    return jsonify({
+        'success': True, 
+        'message': f'Paging simulator initialized with {num_frames} frames ({policy})'
+    })
+
+
+@app.route('/api/paging/access', methods=['POST'])
+def paging_access():
+    """Access a page (may trigger page fault)."""
+    global paging_state
+    import random
+    
+    if not paging_state['initialized']:
+        return jsonify({'success': False, 'error': 'Paging not initialized'})
+    
+    data = request.get_json() or {}
+    vpn = data.get('vpn')
+    
+    if vpn is None:
+        return jsonify({'success': False, 'error': 'VPN required'})
+    
+    # Convert string VPN to int
+    if isinstance(vpn, str):
+        vpn = int(vpn, 16) if vpn.startswith('0x') else int(vpn)
+    
+    result = {
+        'vpn': vpn,
+        'vpn_hex': hex(vpn),
+        'page_fault': False,
+        'evicted_vpn': None,
+        'frame_index': None
+    }
+    
+    # Check if page is already in memory
+    if vpn in paging_state['page_table']:
+        # PAGE HIT
+        frame_idx = paging_state['page_table'][vpn]
+        paging_state['page_hits'] += 1
+        paging_state['frames'][frame_idx]['last_access'] = paging_state['access_counter']
+        paging_state['frames'][frame_idx]['reference_bit'] = True
+        result['hit'] = True
+        result['frame_index'] = frame_idx
+    else:
+        # PAGE FAULT
+        paging_state['page_faults'] += 1
+        paging_state['disk_reads'] += 1
+        result['page_fault'] = True
+        result['hit'] = False
+        
+        # Find a free frame or evict one
+        free_frame = None
+        for i, frame in enumerate(paging_state['frames']):
+            if frame is None:
+                free_frame = i
+                break
+        
+        if free_frame is not None:
+            # Use free frame
+            frame_idx = free_frame
+        else:
+            # Need to evict - apply replacement policy
+            policy = paging_state['policy']
+            
+            if policy == 'LRU':
+                # Find least recently used
+                min_access = float('inf')
+                victim = 0
+                for i, frame in enumerate(paging_state['frames']):
+                    if frame['last_access'] < min_access:
+                        min_access = frame['last_access']
+                        victim = i
+                frame_idx = victim
+                
+            elif policy == 'FIFO':
+                # Find oldest loaded page
+                min_loaded = float('inf')
+                victim = 0
+                for i, frame in enumerate(paging_state['frames']):
+                    if frame['loaded_at'] < min_loaded:
+                        min_loaded = frame['loaded_at']
+                        victim = i
+                frame_idx = victim
+                
+            elif policy == 'RANDOM':
+                frame_idx = random.randint(0, paging_state['num_frames'] - 1)
+                
+            elif policy == 'CLOCK':
+                # Clock (Second Chance) algorithm
+                while True:
+                    frame = paging_state['frames'][paging_state['clock_hand']]
+                    if not frame['reference_bit']:
+                        frame_idx = paging_state['clock_hand']
+                        paging_state['clock_hand'] = (paging_state['clock_hand'] + 1) % paging_state['num_frames']
+                        break
+                    # Give second chance
+                    frame['reference_bit'] = False
+                    paging_state['clock_hand'] = (paging_state['clock_hand'] + 1) % paging_state['num_frames']
+            
+            # Record evicted page
+            evicted = paging_state['frames'][frame_idx]
+            result['evicted_vpn'] = evicted['vpn']
+            result['evicted_vpn_hex'] = hex(evicted['vpn'])
+            # Remove from page table
+            del paging_state['page_table'][evicted['vpn']]
+        
+        # Load new page into frame
+        paging_state['frames'][frame_idx] = {
+            'vpn': vpn,
+            'loaded_at': paging_state['access_counter'],
+            'last_access': paging_state['access_counter'],
+            'reference_bit': True
+        }
+        paging_state['page_table'][vpn] = frame_idx
+        result['frame_index'] = frame_idx
+    
+    # Record access history (keep last 50)
+    paging_state['access_history'].append({
+        'vpn': vpn,
+        'vpn_hex': hex(vpn),
+        'hit': result['hit'],
+        'frame': result['frame_index'],
+        'evicted': result.get('evicted_vpn_hex')
+    })
+    if len(paging_state['access_history']) > 50:
+        paging_state['access_history'] = paging_state['access_history'][-50:]
+    
+    paging_state['access_counter'] += 1
+    
+    return jsonify({'success': True, **result})
+
+
+@app.route('/api/paging/status', methods=['GET'])
+def paging_status():
+    """Get paging simulator status."""
+    if not paging_state['initialized']:
+        return jsonify({'success': False, 'error': 'Paging not initialized'})
+    
+    total = paging_state['page_hits'] + paging_state['page_faults']
+    hit_rate = (paging_state['page_hits'] / total * 100) if total > 0 else 0
+    
+    # Format frames for display
+    frames = []
+    for i, frame in enumerate(paging_state['frames']):
+        if frame is not None:
+            frames.append({
+                'index': i,
+                'vpn': frame['vpn'],
+                'vpn_hex': hex(frame['vpn']),
+                'loaded_at': frame['loaded_at'],
+                'last_access': frame['last_access'],
+                'occupied': True
+            })
+        else:
+            frames.append({
+                'index': i,
+                'vpn': None,
+                'vpn_hex': None,
+                'loaded_at': None,
+                'last_access': None,
+                'occupied': False
+            })
+    
+    return jsonify({
+        'success': True,
+        'data': {
+            'num_frames': paging_state['num_frames'],
+            'policy': paging_state['policy'],
+            'frames': frames,
+            'page_faults': paging_state['page_faults'],
+            'page_hits': paging_state['page_hits'],
+            'hit_rate': round(hit_rate, 2),
+            'disk_reads': paging_state['disk_reads'],
+            'access_history': paging_state['access_history'][-20:]  # Last 20 accesses
+        }
+    })
+
+
+@app.route('/api/paging/reset', methods=['POST'])
+def paging_reset():
+    """Reset paging statistics (keep frames)."""
+    global paging_state
+    
+    if not paging_state['initialized']:
+        return jsonify({'success': False, 'error': 'Paging not initialized'})
+    
+    paging_state['page_faults'] = 0
+    paging_state['page_hits'] = 0
+    paging_state['disk_reads'] = 0
+    paging_state['access_history'] = []
+    
+    return jsonify({'success': True, 'message': 'Statistics reset'})
+
+
+@app.route('/api/paging/sequence', methods=['POST'])
+def paging_sequence():
+    """Run a sequence of page accesses."""
+    global paging_state
+    import random
+    
+    if not paging_state['initialized']:
+        return jsonify({'success': False, 'error': 'Paging not initialized'})
+    
+    data = request.get_json() or {}
+    addresses = data.get('addresses', [])
+    
+    if not addresses:
+        return jsonify({'success': False, 'error': 'Addresses list required'})
+    
+    results = []
+    for addr in addresses:
+        # Parse address
+        if isinstance(addr, str):
+            vpn = int(addr, 16) if addr.startswith('0x') else int(addr)
+        else:
+            vpn = int(addr)
+        
+        # Simulate access (reuse logic from paging_access)
+        hit = vpn in paging_state['page_table']
+        
+        if hit:
+            frame_idx = paging_state['page_table'][vpn]
+            paging_state['page_hits'] += 1
+            paging_state['frames'][frame_idx]['last_access'] = paging_state['access_counter']
+            paging_state['frames'][frame_idx]['reference_bit'] = True
+            results.append({'vpn': hex(vpn), 'hit': True, 'frame': frame_idx, 'evicted': None})
+        else:
+            paging_state['page_faults'] += 1
+            paging_state['disk_reads'] += 1
+            
+            # Find free or evict
+            free_frame = None
+            for i, frame in enumerate(paging_state['frames']):
+                if frame is None:
+                    free_frame = i
+                    break
+            
+            evicted = None
+            if free_frame is not None:
+                frame_idx = free_frame
+            else:
+                policy = paging_state['policy']
+                if policy == 'LRU':
+                    victim = min(range(len(paging_state['frames'])), 
+                                key=lambda i: paging_state['frames'][i]['last_access'])
+                elif policy == 'FIFO':
+                    victim = min(range(len(paging_state['frames'])), 
+                                key=lambda i: paging_state['frames'][i]['loaded_at'])
+                elif policy == 'RANDOM':
+                    victim = random.randint(0, paging_state['num_frames'] - 1)
+                else:  # CLOCK
+                    while True:
+                        frame = paging_state['frames'][paging_state['clock_hand']]
+                        if not frame['reference_bit']:
+                            victim = paging_state['clock_hand']
+                            paging_state['clock_hand'] = (paging_state['clock_hand'] + 1) % paging_state['num_frames']
+                            break
+                        frame['reference_bit'] = False
+                        paging_state['clock_hand'] = (paging_state['clock_hand'] + 1) % paging_state['num_frames']
+                
+                frame_idx = victim
+                evicted = paging_state['frames'][frame_idx]['vpn']
+                del paging_state['page_table'][evicted]
+            
+            paging_state['frames'][frame_idx] = {
+                'vpn': vpn,
+                'loaded_at': paging_state['access_counter'],
+                'last_access': paging_state['access_counter'],
+                'reference_bit': True
+            }
+            paging_state['page_table'][vpn] = frame_idx
+            results.append({'vpn': hex(vpn), 'hit': False, 'frame': frame_idx, 'evicted': hex(evicted) if evicted else None})
+        
+        paging_state['access_counter'] += 1
+    
+    total = paging_state['page_hits'] + paging_state['page_faults']
+    hit_rate = (paging_state['page_hits'] / total * 100) if total > 0 else 0
+    
+    return jsonify({
+        'success': True,
+        'results': results,
+        'stats': {
+            'page_faults': paging_state['page_faults'],
+            'page_hits': paging_state['page_hits'],
+            'hit_rate': round(hit_rate, 2)
+        }
+    })
 
 
 # =============================================================================

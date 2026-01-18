@@ -106,6 +106,39 @@ export async function resetTLBStats() {
 }
 
 // =============================================================================
+// Paging APIs (Demand Paging Simulator)
+// =============================================================================
+
+export async function initPaging(frames = 4, policy = 'LRU') {
+  return fetchAPI('/paging/init', {
+    method: 'POST',
+    body: JSON.stringify({ frames, policy })
+  })
+}
+
+export async function pagingAccess(vpn) {
+  return fetchAPI('/paging/access', {
+    method: 'POST',
+    body: JSON.stringify({ vpn })
+  })
+}
+
+export async function getPagingStatus() {
+  return fetchAPI('/paging/status')
+}
+
+export async function resetPagingStats() {
+  return fetchAPI('/paging/reset', { method: 'POST' })
+}
+
+export async function runPagingSequence(addresses) {
+  return fetchAPI('/paging/sequence', {
+    method: 'POST',
+    body: JSON.stringify({ addresses })
+  })
+}
+
+// =============================================================================
 // Utility Functions
 // =============================================================================
 

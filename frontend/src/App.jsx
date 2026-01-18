@@ -8,13 +8,15 @@ import {
   Database, 
   Activity,
   BookOpen,
-  Zap
+  Zap,
+  HardDrive
 } from 'lucide-react'
 
 import Dashboard from './pages/Dashboard'
 import ProcessView from './pages/ProcessView'
 import AddressTranslator from './pages/AddressTranslator'
 import TLBSimulator from './pages/TLBSimulator'
+import DemandPaging from './pages/DemandPaging'
 import Learn from './pages/Learn'
 
 function App() {
@@ -57,6 +59,10 @@ function App() {
                 <Database size={18} />
                 TLB Simulator
               </NavLink>
+              <NavLink to="/paging" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                <HardDrive size={18} />
+                Demand Paging
+              </NavLink>
             </div>
 
             <div className="nav-section">
@@ -84,6 +90,7 @@ function App() {
             <Route path="/process" element={<ProcessView />} />
             <Route path="/translate" element={<AddressTranslator />} />
             <Route path="/tlb" element={<TLBSimulator />} />
+            <Route path="/paging" element={<DemandPaging />} />
             <Route path="/learn" element={<Learn />} />
           </Routes>
         </main>
