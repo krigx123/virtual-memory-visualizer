@@ -76,7 +76,7 @@ virtual-memory-visualizer/
 ```
 
 ### 📊 Visual Flowchart
-![System Architecture](docs/architecture.jpeg)
+<img src="docs/architecture.jpeg" alt="System Architecture" width="500">
 
 ---
 
