@@ -294,6 +294,10 @@ Measurements and visualizations are available via the web interface:
 | `POST` | `/api/tlb/access` | Access TLB |
 | `POST` | `/api/paging/init` | Initialize paging |
 | `POST` | `/api/paging/access` | Access page |
+| `POST` | `/api/playground/allocate` | Allocate memory `{size_mb}` |
+| `POST` | `/api/playground/lock` | Lock region `{id}` |
+| `POST` | `/api/playground/advise` | Apply advice `{id, advice}` |
+| `GET` | `/api/playground/status` | Get playground status |
 
 ---
 
