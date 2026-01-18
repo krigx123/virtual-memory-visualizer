@@ -416,6 +416,13 @@ static void cmd_tlb(const char *subcmd, const char *arg, const char *arg3) {
         
         uint64_t vaddr = parse_address(arg);
         uint64_t vpn = get_vpn(vaddr);
+        
+        /* Educational hint for users confusing Address with VPN */
+        if (vpn == 0 && vaddr > 0 && vaddr < 4096) {
+            printf("[INFO] Note: Address 0x%lx maps to VPN 0x0 (Offset 0x%lx)\n", vaddr, vaddr);
+            printf("       To access VPN 1, use address 0x1000 (4096)\n");
+        }
+
         uint64_t found_pfn;
         
         int hit = tlb_lookup(global_tlb, vpn, &found_pfn);
