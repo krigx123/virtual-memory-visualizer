@@ -28,17 +28,43 @@ An interactive visualization tool for understanding virtual memory concepts in o
 
 ```
 virtual-memory-visualizer/
-├── backend/                    # C Backend
-│   ├── src/                    # Core logic (translation, /proc reader, simulators)
+│
+├── backend/                        # C Backend
+│   ├── src/
+│   │   ├── vmem_shell.c            # Main interactive shell
+│   │   ├── addr_translate.c/h      # Address translation logic
+│   │   ├── proc_reader.c/h         # /proc filesystem reader
+│   │   ├── tlb_sim.c/h             # TLB simulator
+│   │   ├── paging_sim.c/h          # Demand paging simulator
+│   │   ├── playground.c/h          # Memory playground (mmap/mlock)
+│   │   ├── json_output.c/h         # JSON output for API
+│   │   └── vmem_types.h            # Shared type definitions
+│   ├── bin/                        # Compiled binaries
 │   └── Makefile
 │
-├── api/                        # Python API
-│   ├── app.py                  # Flask server
+├── api/                            # Python API Layer
+│   ├── app.py                      # Flask server (all endpoints)
 │   └── requirements.txt
 │
-└── frontend/                   # React Frontend
-    ├── src/                    # Components and pages
-    └── package.json
+├── frontend/                       # React Frontend
+│   ├── src/
+│   │   ├── App.jsx                 # Main app with routing
+│   │   ├── index.css               # Global styles
+│   │   ├── main.jsx                # Entry point
+│   │   └── pages/
+│   │       ├── Dashboard.jsx       # Home dashboard
+│   │       ├── ProcessView.jsx     # Process memory viewer
+│   │       ├── AddressTranslator.jsx # Page table walk UI
+│   │       ├── TLBSimulator.jsx    # TLB simulation UI
+│   │       ├── DemandPaging.jsx    # Demand paging UI
+│   │       ├── MemoryPlayground.jsx # Memory playground UI
+│   │       └── Learn.jsx           # Educational content
+│   └── package.json
+│
+├── docs/                           # Documentation assets
+│   └── architecture.jpeg           # System flowchart
+│
+└── README.md
 ```
 
 ### 🔄 System Architecture
