@@ -53,10 +53,89 @@ virtual-memory-visualizer/
 ## 🚀 Quick Start
 
 ### Prerequisites
-- **Linux** (Ubuntu/Fedora/etc.) - Required for `/proc` filesystem
-- **GCC** - C compiler
-- **Python 3.8+** - For Flask API
-- **Node.js 18+** - For React frontend
+- **Windows with WSL** (Ubuntu/Fedora) OR **Native Linux**
+- **GCC** - C compiler (in WSL/Linux)
+- **Python 3.8+** with Flask (in WSL/Linux)
+- **Node.js 18+** - For React frontend (Windows or WSL)
+
+---
+
+## 🖥️ Running on Windows with WSL
+
+### 1. Build C Backend (in WSL)
+
+```powershell
+# From PowerShell - build the C backend in WSL
+wsl -e bash -c "cd '/mnt/c/path/to/virtual-memory-visualizer/backend' && make"
+```
+
+Or open WSL terminal directly:
+```bash
+cd /mnt/c/path/to/virtual-memory-visualizer/backend
+make
+```
+
+### 2. Test CLI in WSL
+
+```bash
+# In WSL terminal
+cd /mnt/c/path/to/virtual-memory-visualizer/backend
+./bin/vmem_shell
+
+# Or with sudo for full pagemap access
+sudo ./bin/vmem_shell
+```
+
+Example session:
+```
+vmem> ps
+vmem> select 1234
+vmem> maps
+vmem> translate 0x7fff00010000
+vmem> pagewalk 0x7fff00010000
+vmem> tlb init 16
+vmem> tlb access 0x7fff00010000
+vmem> tlb status
+```
+
+### 3. Install Python Dependencies (WSL)
+
+For **Fedora WSL**:
+```bash
+sudo dnf install -y python3-pip python3-flask python3-flask-cors
+```
+
+For **Ubuntu WSL**:
+```bash
+sudo apt update
+sudo apt install -y python3-pip python3-flask
+pip3 install flask-cors
+```
+
+### 4. Start API Server (WSL)
+
+```bash
+# In WSL terminal
+cd /mnt/c/path/to/virtual-memory-visualizer/api
+python3 app.py
+```
+
+Server runs on `http://localhost:5000`
+
+### 5. Start React Frontend (Windows PowerShell)
+
+```powershell
+# In a new PowerShell window
+cd C:\path\to\virtual-memory-visualizer\frontend
+npm install
+npm run dev
+```
+
+Frontend runs on `http://localhost:3000`
+
+---
+
+## 🐧 Running on Native Linux
 
 ### 1. Build C Backend
 
@@ -72,18 +151,6 @@ This creates `bin/vmem_shell` - the main executable.
 ```bash
 # Run with sudo for full pagemap access
 sudo ./bin/vmem_shell
-```
-
-Example session:
-```
-vmem> ps
-vmem> select 1234
-vmem> maps
-vmem> translate 0x7fff00010000
-vmem> pagewalk 0x7fff00010000
-vmem> tlb init 16
-vmem> tlb access 0x7fff00010000
-vmem> tlb status
 ```
 
 ### 3. Start API Server
