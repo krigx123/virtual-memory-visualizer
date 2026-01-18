@@ -37,6 +37,7 @@ TLB* tlb_init(int size, int replacement_policy) {
     tlb->hits = 0;
     tlb->misses = 0;
     tlb->access_counter = 0;
+    tlb->clock_hand = 0;  /* Initialize clock hand for Clock algorithm */
     
     /* Initialize all entries as invalid */
     for (int i = 0; i < size; i++) {
@@ -147,6 +148,33 @@ static int find_victim(TLB *tlb) {
             
         case TLB_POLICY_RANDOM:
             victim = rand() % tlb->size;
+            break;
+            
+        case TLB_POLICY_CLOCK:
+            /* Clock (Second Chance) Algorithm */
+            /* Scan entries starting from clock_hand, looking for accessed=0 */
+            {
+                int start = tlb->clock_hand;
+                while (1) {
+                    TLBEntry *e = &tlb->entries[tlb->clock_hand];
+                    if (!e->accessed) {
+                        /* Found victim: entry has not been accessed recently */
+                        victim = tlb->clock_hand;
+                        tlb->clock_hand = (tlb->clock_hand + 1) % tlb->size;
+                        break;
+                    }
+                    /* Give second chance: clear accessed bit */
+                    e->accessed = 0;
+                    tlb->clock_hand = (tlb->clock_hand + 1) % tlb->size;
+                    
+                    /* Prevent infinite loop (shouldn't happen but safety check) */
+                    if (tlb->clock_hand == start) {
+                        victim = tlb->clock_hand;
+                        tlb->clock_hand = (tlb->clock_hand + 1) % tlb->size;
+                        break;
+                    }
+                }
+            }
             break;
             
         default:
@@ -287,6 +315,7 @@ const char* tlb_policy_name(int policy) {
         case TLB_POLICY_LRU:    return "LRU";
         case TLB_POLICY_FIFO:   return "FIFO";
         case TLB_POLICY_RANDOM: return "Random";
+        case TLB_POLICY_CLOCK:  return "Clock";
         default:               return "Unknown";
     }
 }

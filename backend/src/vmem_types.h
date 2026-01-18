@@ -104,7 +104,8 @@ typedef struct {
 typedef struct {
     TLBEntry *entries;          /* Array of TLB entries */
     int size;                   /* Number of entries */
-    int replacement_policy;     /* 0=LRU, 1=FIFO, 2=Random */
+    int replacement_policy;     /* 0=LRU, 1=FIFO, 2=Random, 3=Clock */
+    int clock_hand;             /* Current position for Clock algorithm */
     
     /* Statistics */
     uint64_t hits;
@@ -116,6 +117,7 @@ typedef struct {
 #define TLB_POLICY_LRU 0
 #define TLB_POLICY_FIFO 1
 #define TLB_POLICY_RANDOM 2
+#define TLB_POLICY_CLOCK 3
 
 /* ============================================================================
  * Page Fault Information

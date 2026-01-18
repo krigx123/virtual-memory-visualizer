@@ -72,7 +72,7 @@ static void print_help(void) {
     printf("  faults                 Show page fault statistics\n");
     printf("\n");
     printf("TLB Simulator:\n");
-    printf("  tlb init <size>        Initialize TLB with given size (default: 16)\n");
+    printf("  tlb init <size> [policy]   Initialize TLB (policy: LRU, FIFO, RANDOM, CLOCK)\n");
     printf("  tlb lookup <addr>      Lookup address in TLB\n");
     printf("  tlb access <addr>      Access address (lookup + insert on miss)\n");
     printf("  tlb status             Show TLB contents and statistics\n");
@@ -329,7 +329,7 @@ static void cmd_faults(void) {
     printf("\n");
 }
 
-static void cmd_tlb(const char *subcmd, const char *arg) {
+static void cmd_tlb(const char *subcmd, const char *arg, const char *arg3) {
     if (subcmd == NULL || *subcmd == '\0') {
         printf("Usage: tlb <init|lookup|access|status|flush> [args]\n");
         return;
@@ -337,6 +337,8 @@ static void cmd_tlb(const char *subcmd, const char *arg) {
     
     if (strcmp(subcmd, "init") == 0) {
         int size = 16;
+        int policy = TLB_POLICY_LRU;
+        
         if (arg != NULL && *arg != '\0') {
             size = atoi(arg);
             if (size <= 0 || size > 256) {
@@ -345,17 +347,33 @@ static void cmd_tlb(const char *subcmd, const char *arg) {
             }
         }
         
+        /* Parse policy from arg3 */
+        if (arg3 != NULL && *arg3 != '\0') {
+            if (strcasecmp(arg3, "LRU") == 0) {
+                policy = TLB_POLICY_LRU;
+            } else if (strcasecmp(arg3, "FIFO") == 0) {
+                policy = TLB_POLICY_FIFO;
+            } else if (strcasecmp(arg3, "RANDOM") == 0) {
+                policy = TLB_POLICY_RANDOM;
+            } else if (strcasecmp(arg3, "CLOCK") == 0) {
+                policy = TLB_POLICY_CLOCK;
+            } else {
+                printf("Unknown policy: %s. Using LRU.\n", arg3);
+                printf("Available policies: LRU, FIFO, RANDOM, CLOCK\n");
+            }
+        }
+        
         if (global_tlb != NULL) {
             tlb_free(global_tlb);
         }
         
-        global_tlb = tlb_init(size, TLB_POLICY_LRU);
+        global_tlb = tlb_init(size, policy);
         if (global_tlb == NULL) {
             printf("Failed to initialize TLB\n");
             return;
         }
         
-        printf("[OK] TLB initialized with %d entries (LRU replacement)\n", size);
+        printf("[OK] TLB initialized with %d entries (%s replacement)\n", size, tlb_policy_name(policy));
         
     } else if (strcmp(subcmd, "lookup") == 0 || strcmp(subcmd, "access") == 0) {
         if (global_tlb == NULL) {
@@ -493,10 +511,12 @@ static void run_shell(void) {
         if (input[0] == '\0') continue;
         
         /* Parse command */
+        char arg3[256];
         cmd[0] = '\0';
         arg1[0] = '\0';
         arg2[0] = '\0';
-        sscanf(input, "%63s %255s %255s", cmd, arg1, arg2);
+        arg3[0] = '\0';
+        sscanf(input, "%63s %255s %255s %255s", cmd, arg1, arg2, arg3);
         
         /* Execute command */
         if (strcmp(cmd, "exit") == 0 || strcmp(cmd, "quit") == 0 || strcmp(cmd, "q") == 0) {
@@ -531,7 +551,7 @@ static void run_shell(void) {
             cmd_faults();
             
         } else if (strcmp(cmd, "tlb") == 0) {
-            cmd_tlb(arg1, arg2);
+            cmd_tlb(arg1, arg2, arg3);
             
         } else if (strcmp(cmd, "sysinfo") == 0) {
             cmd_sysinfo();
