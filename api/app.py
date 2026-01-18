@@ -259,7 +259,7 @@ def tlb_access():
         if isinstance(pfn, str):
             pfn = int(pfn, 16) if pfn.startswith('0x') else int(pfn)
         
-        # Find slot
+        # Find empty slot first
         empty_slot = None
         for i, entry in enumerate(tlb_state['entries']):
             if entry is None or not entry['valid']:
@@ -267,19 +267,64 @@ def tlb_access():
                 break
         
         if empty_slot is None:
-            min_access = float('inf')
-            victim = 0
-            for i, entry in enumerate(tlb_state['entries']):
-                if entry and entry['last_access'] < min_access:
-                    min_access = entry['last_access']
-                    victim = i
-            empty_slot = victim
+            # Apply replacement policy based on selected algorithm
+            policy = tlb_state.get('policy', 'LRU')
+            
+            if policy == 'LRU':
+                # Least Recently Used - evict entry with oldest last_access
+                min_access = float('inf')
+                victim = 0
+                for i, entry in enumerate(tlb_state['entries']):
+                    if entry and entry['last_access'] < min_access:
+                        min_access = entry['last_access']
+                        victim = i
+                empty_slot = victim
+                
+            elif policy == 'FIFO':
+                # First In First Out - evict entry with oldest insert_time
+                min_insert = float('inf')
+                victim = 0
+                for i, entry in enumerate(tlb_state['entries']):
+                    if entry and entry.get('insert_time', 0) < min_insert:
+                        min_insert = entry.get('insert_time', 0)
+                        victim = i
+                empty_slot = victim
+                
+            elif policy == 'RANDOM':
+                # Random replacement
+                import random
+                empty_slot = random.randint(0, tlb_state['size'] - 1)
+                
+            elif policy == 'CLOCK':
+                # Clock (Second Chance) algorithm
+                clock_hand = tlb_state.get('clock_hand', 0)
+                while True:
+                    entry = tlb_state['entries'][clock_hand]
+                    if entry and not entry.get('reference_bit', False):
+                        empty_slot = clock_hand
+                        tlb_state['clock_hand'] = (clock_hand + 1) % tlb_state['size']
+                        break
+                    if entry:
+                        entry['reference_bit'] = False
+                    clock_hand = (clock_hand + 1) % tlb_state['size']
+                
+            else:
+                # Default to LRU
+                min_access = float('inf')
+                victim = 0
+                for i, entry in enumerate(tlb_state['entries']):
+                    if entry and entry['last_access'] < min_access:
+                        min_access = entry['last_access']
+                        victim = i
+                empty_slot = victim
         
         tlb_state['entries'][empty_slot] = {
             'vpn': vpn,
             'pfn': pfn,
             'valid': True,
-            'last_access': tlb_state['access_counter']
+            'last_access': tlb_state['access_counter'],
+            'insert_time': tlb_state['access_counter'],
+            'reference_bit': True
         }
         tlb_state['access_counter'] += 1
     

@@ -196,81 +196,87 @@ function Dashboard() {
             </h3>
           </div>
           
+          {/* Clean segmented bar without text */}
           <div style={{ 
-            height: '40px', 
+            height: '32px', 
             borderRadius: 'var(--radius-md)', 
             overflow: 'hidden',
             display: 'flex',
-            background: 'var(--bg-tertiary)'
+            background: 'var(--bg-tertiary)',
+            border: '1px solid var(--border-primary)'
           }}>
             <div 
               style={{ 
                 width: `${(systemMem.active / systemMem.total) * 100}%`,
-                background: 'var(--gradient-primary)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                fontSize: '0.75rem',
-                fontWeight: '600'
+                background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                transition: 'width 0.5s ease'
               }}
-              title="Active Memory"
-            >
-              Active
-            </div>
+              title={`Active: ${formatBytes(systemMem.active)}`}
+            />
             <div 
               style={{ 
                 width: `${(systemMem.cached / systemMem.total) * 100}%`,
-                background: 'var(--gradient-success)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                fontSize: '0.75rem',
-                fontWeight: '600'
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                transition: 'width 0.5s ease'
               }}
-              title="Cached"
-            >
-              Cached
-            </div>
+              title={`Cached: ${formatBytes(systemMem.cached)}`}
+            />
             <div 
               style={{ 
                 width: `${(systemMem.buffers / systemMem.total) * 100}%`,
-                background: 'rgba(139, 92, 246, 0.8)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                fontSize: '0.75rem',
-                fontWeight: '600'
+                background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                transition: 'width 0.5s ease'
               }}
-              title="Buffers"
-            >
-              Buf
-            </div>
+              title={`Buffers: ${formatBytes(systemMem.buffers)}`}
+            />
           </div>
           
+          {/* Detailed legend with percentages */}
           <div style={{ 
-            display: 'flex', 
-            gap: 'var(--spacing-lg)', 
-            marginTop: 'var(--spacing-md)',
-            fontSize: '0.8rem'
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: 'var(--spacing-md)', 
+            marginTop: 'var(--spacing-lg)',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
-              <div style={{ width: 12, height: 12, borderRadius: 3, background: 'var(--gradient-primary)' }}></div>
-              <span style={{ color: 'var(--text-secondary)' }}>Active: {formatBytes(systemMem.active)}</span>
+            <div style={{ 
+              padding: 'var(--spacing-sm) var(--spacing-md)',
+              background: 'rgba(59, 130, 246, 0.1)',
+              borderRadius: 'var(--radius-sm)',
+              borderLeft: '3px solid #3b82f6'
+            }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '2px' }}>ACTIVE</div>
+              <div style={{ fontSize: '0.95rem', fontWeight: '600', color: '#3b82f6' }}>{formatBytes(systemMem.active)}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{((systemMem.active / systemMem.total) * 100).toFixed(1)}%</div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
-              <div style={{ width: 12, height: 12, borderRadius: 3, background: 'var(--gradient-success)' }}></div>
-              <span style={{ color: 'var(--text-secondary)' }}>Cached: {formatBytes(systemMem.cached)}</span>
+            <div style={{ 
+              padding: 'var(--spacing-sm) var(--spacing-md)',
+              background: 'rgba(16, 185, 129, 0.1)',
+              borderRadius: 'var(--radius-sm)',
+              borderLeft: '3px solid #10b981'
+            }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '2px' }}>CACHED</div>
+              <div style={{ fontSize: '0.95rem', fontWeight: '600', color: '#10b981' }}>{formatBytes(systemMem.cached)}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{((systemMem.cached / systemMem.total) * 100).toFixed(1)}%</div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
-              <div style={{ width: 12, height: 12, borderRadius: 3, background: 'rgba(139, 92, 246, 0.8)' }}></div>
-              <span style={{ color: 'var(--text-secondary)' }}>Buffers: {formatBytes(systemMem.buffers)}</span>
+            <div style={{ 
+              padding: 'var(--spacing-sm) var(--spacing-md)',
+              background: 'rgba(139, 92, 246, 0.1)',
+              borderRadius: 'var(--radius-sm)',
+              borderLeft: '3px solid #8b5cf6'
+            }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '2px' }}>BUFFERS</div>
+              <div style={{ fontSize: '0.95rem', fontWeight: '600', color: '#8b5cf6' }}>{formatBytes(systemMem.buffers)}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{((systemMem.buffers / systemMem.total) * 100).toFixed(1)}%</div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
-              <div style={{ width: 12, height: 12, borderRadius: 3, background: 'var(--bg-tertiary)' }}></div>
-              <span style={{ color: 'var(--text-secondary)' }}>Free: {formatBytes(systemMem.free)}</span>
+            <div style={{ 
+              padding: 'var(--spacing-sm) var(--spacing-md)',
+              background: 'rgba(100, 116, 139, 0.1)',
+              borderRadius: 'var(--radius-sm)',
+              borderLeft: '3px solid #64748b'
+            }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '2px' }}>FREE</div>
+              <div style={{ fontSize: '0.95rem', fontWeight: '600', color: '#64748b' }}>{formatBytes(systemMem.free)}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{((systemMem.free / systemMem.total) * 100).toFixed(1)}%</div>
             </div>
           </div>
         </motion.div>

@@ -21,6 +21,7 @@ import {
 
 function TLBSimulator() {
   const [tlbSize, setTlbSize] = useState(16)
+  const [tlbPolicy, setTlbPolicy] = useState('LRU')
   const [tlbInitialized, setTlbInitialized] = useState(false)
   const [tlbData, setTlbData] = useState(null)
   const [addressInput, setAddressInput] = useState('')
@@ -28,6 +29,13 @@ function TLBSimulator() {
   const [lastAccess, setLastAccess] = useState(null)
   const [accessHistory, setAccessHistory] = useState([])
   const [loading, setLoading] = useState(false)
+
+  const policies = [
+    { value: 'LRU', label: 'LRU (Least Recently Used)', desc: 'Evicts the entry that was accessed longest ago' },
+    { value: 'FIFO', label: 'FIFO (First In First Out)', desc: 'Evicts the oldest inserted entry' },
+    { value: 'RANDOM', label: 'Random', desc: 'Randomly selects a victim entry' },
+    { value: 'CLOCK', label: 'Clock (Second Chance)', desc: 'Uses reference bit to give entries a second chance' }
+  ]
 
   useEffect(() => {
     checkTLBStatus()
@@ -43,7 +51,7 @@ function TLBSimulator() {
 
   async function handleInit() {
     setLoading(true)
-    const result = await initTLB(tlbSize, 'LRU')
+    const result = await initTLB(tlbSize, tlbPolicy)
     if (result.success) {
       setTlbInitialized(true)
       setAccessHistory([])
@@ -99,6 +107,8 @@ function TLBSimulator() {
     }
   }
 
+  const currentPolicyInfo = policies.find(p => p.value === (tlbData?.policy || tlbPolicy))
+
   return (
     <div className="animate-slide-in">
       {/* Header */}
@@ -107,7 +117,7 @@ function TLBSimulator() {
           TLB Simulator
         </h1>
         <p style={{ color: 'var(--text-secondary)' }}>
-          Simulate Translation Lookaside Buffer behavior with LRU replacement policy
+          Simulate Translation Lookaside Buffer with multiple replacement policies
         </p>
       </div>
 
@@ -117,7 +127,7 @@ function TLBSimulator() {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           className="card"
-          style={{ maxWidth: '500px' }}
+          style={{ maxWidth: '600px' }}
         >
           <div className="card-header">
             <h3 className="card-title">
@@ -126,17 +136,47 @@ function TLBSimulator() {
             </h3>
           </div>
           
-          <div className="input-group" style={{ marginBottom: 'var(--spacing-lg)' }}>
-            <label>TLB Size (entries)</label>
-            <input
-              type="number"
-              min="4"
-              max="64"
-              value={tlbSize}
-              onChange={(e) => setTlbSize(parseInt(e.target.value) || 16)}
-            />
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Recommended: 8, 16, or 32 entries
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-lg)', marginBottom: 'var(--spacing-lg)' }}>
+            <div className="input-group">
+              <label>TLB Size (entries)</label>
+              <input
+                type="number"
+                min="4"
+                max="64"
+                value={tlbSize}
+                onChange={(e) => setTlbSize(parseInt(e.target.value) || 16)}
+              />
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                4 to 64 entries
+              </span>
+            </div>
+            
+            <div className="input-group">
+              <label>Replacement Policy</label>
+              <select
+                value={tlbPolicy}
+                onChange={(e) => setTlbPolicy(e.target.value)}
+                style={{ padding: 'var(--spacing-md)', background: 'var(--bg-tertiary)', border: '1px solid var(--border-primary)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontSize: '0.95rem' }}
+              >
+                {policies.map(p => (
+                  <option key={p.value} value={p.value}>{p.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          
+          {/* Policy Description */}
+          <div style={{ 
+            padding: 'var(--spacing-md)', 
+            background: 'rgba(59, 130, 246, 0.1)', 
+            borderRadius: 'var(--radius-md)',
+            borderLeft: '3px solid var(--accent-blue)',
+            marginBottom: 'var(--spacing-lg)',
+            fontSize: '0.85rem'
+          }}>
+            <strong style={{ color: 'var(--accent-blue)' }}>{policies.find(p => p.value === tlbPolicy)?.label}:</strong>
+            <span style={{ color: 'var(--text-secondary)', marginLeft: 'var(--spacing-sm)' }}>
+              {policies.find(p => p.value === tlbPolicy)?.desc}
             </span>
           </div>
           
@@ -144,9 +184,10 @@ function TLBSimulator() {
             className="btn btn-primary"
             onClick={handleInit}
             disabled={loading}
+            style={{ width: '100%' }}
           >
             <Play size={18} />
-            Initialize TLB
+            Initialize TLB with {tlbPolicy}
           </button>
         </motion.div>
       ) : (
