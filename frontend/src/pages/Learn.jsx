@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { BookOpen, Cpu, Database, ArrowRightLeft, AlertTriangle, Layers } from 'lucide-react'
+import { BookOpen, Cpu, Database, ArrowRightLeft, AlertTriangle, Layers, HardDrive, RefreshCcw } from 'lucide-react'
 
 function Learn() {
   const concepts = [
@@ -22,8 +22,8 @@ function Learn() {
       color: 'var(--accent-cyan)',
       description: 'The Memory Management Unit (MMU) translates virtual addresses to physical addresses using page tables.',
       details: [
-        'Virtual Address = Virtual Page Number (VPN) + Page Offset',
-        'Physical Address = Physical Frame Number (PFN) + Page Offset',
+        'Virtual Address = VPN (Virtual Page Number) + Page Offset',
+        'Physical Address = PFN (Physical Frame Number) + Page Offset',
         'The page offset remains the same during translation',
         'Page size is typically 4KB (2¹² bytes) on x86',
         'The MMU performs this translation on every memory access'
@@ -53,7 +53,35 @@ function Learn() {
         'TLB Hit: Translation found, fast path (~1 cycle)',
         'TLB Miss: Must walk page table, slow path (~10-100 cycles)',
         'TLB entries are invalidated on context switch (ASID helps)',
-        'Replacement policies: LRU, Random, FIFO'
+        'Replacement policies: LRU, FIFO, Random, Clock'
+      ]
+    },
+    {
+      icon: <HardDrive size={24} />,
+      title: 'Demand Paging',
+      color: 'var(--accent-yellow)',
+      description: 'Pages are loaded into physical memory only when they are first accessed, not when the program starts.',
+      details: [
+        'Lazy loading: Only load pages that are actually needed',
+        'Page Fault triggers loading: OS loads page from disk when accessed',
+        'Benefits: Faster startup, lower memory usage',
+        'Working Set: The set of pages actively used by a process',
+        'Thrashing: When working set exceeds available memory',
+        'Try it: Use the Demand Paging Simulator!'
+      ]
+    },
+    {
+      icon: <RefreshCcw size={24} />,
+      title: 'Page Replacement Algorithms',
+      color: 'var(--accent-pink)',
+      description: 'When physical memory is full and a new page is needed, the OS must choose which page to evict.',
+      details: [
+        'LRU (Least Recently Used): Evict the page not used for the longest time',
+        'FIFO (First In First Out): Evict the oldest loaded page',
+        'Clock (Second Chance): LRU approximation using reference bit',
+        'Random: Simple but unpredictable, rarely used in practice',
+        'Optimal (Bélády\'s): Theoretical best - evict page used furthest in future',
+        'Compare them: Try different policies in the simulators!'
       ]
     },
     {
@@ -73,7 +101,7 @@ function Learn() {
     {
       icon: <BookOpen size={24} />,
       title: 'Memory Regions',
-      color: 'var(--accent-pink)',
+      color: 'var(--accent-red)',
       description: 'A process\'s virtual address space is divided into different regions with specific purposes.',
       details: [
         'Code (.text): Read-only executable code',

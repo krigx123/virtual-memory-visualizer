@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <limits.h>
 
 #include "vmem_types.h"
 #include "proc_reader.h"
@@ -77,6 +78,12 @@ static void print_help(void) {
     printf("  tlb access <addr>      Access address (lookup + insert on miss)\n");
     printf("  tlb status             Show TLB contents and statistics\n");
     printf("  tlb flush              Flush all TLB entries\n");
+    printf("\n");
+    printf("Demand Paging Simulator:\n");
+    printf("  paging init <frames> [policy]  Initialize paging (policy: LRU, FIFO, RANDOM, CLOCK)\n");
+    printf("  paging access <addr>       Access a page (may cause page fault)\n");
+    printf("  paging status              Show physical memory frames and statistics\n");
+    printf("  paging flush               Clear all frames\n");
     printf("\n");
     printf("System Information:\n");
     printf("  sysinfo                Show system memory information\n");
@@ -434,6 +441,228 @@ static void cmd_tlb(const char *subcmd, const char *arg, const char *arg3) {
     }
 }
 
+/* ============================================================================
+ * Paging Simulation (Demand Paging)
+ * ============================================================================ */
+
+#define MAX_PAGING_FRAMES 64
+
+typedef struct {
+    int vpn;              /* Virtual page number stored in this frame (-1 = empty) */
+    int loaded_at;        /* Access counter when page was loaded */
+    int last_access;      /* Access counter when last accessed */
+    int reference_bit;    /* For clock algorithm */
+} PageFrame;
+
+typedef struct {
+    PageFrame frames[MAX_PAGING_FRAMES];
+    int num_frames;
+    int policy;           /* Reuse TLB_POLICY_* constants */
+    int page_faults;
+    int page_hits;
+    int access_counter;
+    int clock_hand;
+} PagingSimulator;
+
+static PagingSimulator *global_paging = NULL;
+
+static void cmd_paging(const char *subcmd, char *arg) {
+    if (subcmd == NULL || *subcmd == '\0') {
+        printf("Usage: paging <init|access|status|flush> [args]\n");
+        return;
+    }
+    
+    if (strcmp(subcmd, "init") == 0) {
+        int num_frames = 4;
+        int policy = TLB_POLICY_LRU;
+        
+        if (arg != NULL && *arg != '\0') {
+            /* Parse: <frames> [policy] */
+            char policy_str[32] = "";
+            sscanf(arg, "%d %31s", &num_frames, policy_str);
+            
+            if (num_frames < 1) num_frames = 4;
+            if (num_frames > MAX_PAGING_FRAMES) num_frames = MAX_PAGING_FRAMES;
+            
+            if (strlen(policy_str) > 0) {
+                if (strcasecmp(policy_str, "FIFO") == 0) policy = TLB_POLICY_FIFO;
+                else if (strcasecmp(policy_str, "RANDOM") == 0) policy = TLB_POLICY_RANDOM;
+                else if (strcasecmp(policy_str, "CLOCK") == 0) policy = TLB_POLICY_CLOCK;
+            }
+        }
+        
+        if (global_paging == NULL) {
+            global_paging = (PagingSimulator *)malloc(sizeof(PagingSimulator));
+        }
+        
+        global_paging->num_frames = num_frames;
+        global_paging->policy = policy;
+        global_paging->page_faults = 0;
+        global_paging->page_hits = 0;
+        global_paging->access_counter = 0;
+        global_paging->clock_hand = 0;
+        
+        for (int i = 0; i < num_frames; i++) {
+            global_paging->frames[i].vpn = -1;  /* Empty */
+            global_paging->frames[i].loaded_at = 0;
+            global_paging->frames[i].last_access = 0;
+            global_paging->frames[i].reference_bit = 0;
+        }
+        
+        printf("[OK] Paging simulator initialized with %d frames (%s replacement)\n", 
+               num_frames, tlb_policy_name(policy));
+        
+    } else if (strcmp(subcmd, "access") == 0) {
+        if (global_paging == NULL) {
+            printf("Paging not initialized. Use 'paging init' first.\n");
+            return;
+        }
+        
+        if (arg == NULL || *arg == '\0') {
+            printf("Usage: paging access <address>\n");
+            return;
+        }
+        
+        uint64_t vaddr = parse_address(arg);
+        int vpn = (int)(vaddr >> 12);  /* Convert address to page number */
+        
+        /* Check if page is in memory */
+        int frame_idx = -1;
+        for (int i = 0; i < global_paging->num_frames; i++) {
+            if (global_paging->frames[i].vpn == vpn) {
+                frame_idx = i;
+                break;
+            }
+        }
+        
+        if (frame_idx >= 0) {
+            /* PAGE HIT */
+            global_paging->page_hits++;
+            global_paging->frames[frame_idx].last_access = global_paging->access_counter;
+            global_paging->frames[frame_idx].reference_bit = 1;
+            printf("[PAGE HIT] VPN 0x%x found in Frame %d\n", vpn, frame_idx);
+        } else {
+            /* PAGE FAULT */
+            global_paging->page_faults++;
+            
+            /* Find free frame or evict */
+            int target_frame = -1;
+            
+            /* First, look for empty frame */
+            for (int i = 0; i < global_paging->num_frames; i++) {
+                if (global_paging->frames[i].vpn == -1) {
+                    target_frame = i;
+                    break;
+                }
+            }
+            
+            if (target_frame < 0) {
+                /* Need to evict - apply policy */
+                int policy = global_paging->policy;
+                
+                if (policy == TLB_POLICY_LRU) {
+                    int min_access = INT_MAX;
+                    for (int i = 0; i < global_paging->num_frames; i++) {
+                        if (global_paging->frames[i].last_access < min_access) {
+                            min_access = global_paging->frames[i].last_access;
+                            target_frame = i;
+                        }
+                    }
+                } else if (policy == TLB_POLICY_FIFO) {
+                    int min_loaded = INT_MAX;
+                    for (int i = 0; i < global_paging->num_frames; i++) {
+                        if (global_paging->frames[i].loaded_at < min_loaded) {
+                            min_loaded = global_paging->frames[i].loaded_at;
+                            target_frame = i;
+                        }
+                    }
+                } else if (policy == TLB_POLICY_RANDOM) {
+                    target_frame = rand() % global_paging->num_frames;
+                } else if (policy == TLB_POLICY_CLOCK) {
+                    while (1) {
+                        if (!global_paging->frames[global_paging->clock_hand].reference_bit) {
+                            target_frame = global_paging->clock_hand;
+                            global_paging->clock_hand = (global_paging->clock_hand + 1) % global_paging->num_frames;
+                            break;
+                        }
+                        global_paging->frames[global_paging->clock_hand].reference_bit = 0;
+                        global_paging->clock_hand = (global_paging->clock_hand + 1) % global_paging->num_frames;
+                    }
+                }
+                
+                int evicted_vpn = global_paging->frames[target_frame].vpn;
+                printf("[PAGE FAULT] VPN 0x%x not in memory, evicted VPN 0x%x from Frame %d\n", 
+                       vpn, evicted_vpn, target_frame);
+            } else {
+                printf("[PAGE FAULT] VPN 0x%x not in memory, loaded into Frame %d\n", vpn, target_frame);
+            }
+            
+            /* Load page into frame */
+            global_paging->frames[target_frame].vpn = vpn;
+            global_paging->frames[target_frame].loaded_at = global_paging->access_counter;
+            global_paging->frames[target_frame].last_access = global_paging->access_counter;
+            global_paging->frames[target_frame].reference_bit = 1;
+        }
+        
+        global_paging->access_counter++;
+        
+    } else if (strcmp(subcmd, "status") == 0) {
+        if (global_paging == NULL) {
+            printf("Paging not initialized. Use 'paging init' first.\n");
+            return;
+        }
+        
+        printf("\n");
+        printf("PAGING SIMULATOR STATUS\n");
+        printf("=======================\n");
+        printf("Frames: %d | Policy: %s\n", global_paging->num_frames, tlb_policy_name(global_paging->policy));
+        printf("\n");
+        printf("Physical Memory Frames:\n");
+        printf("┌───────┬─────────┬─────────┬─────────────┐\n");
+        printf("│ Frame │   VPN   │ Loaded  │ Last Access │\n");
+        printf("├───────┼─────────┼─────────┼─────────────┤\n");
+        
+        for (int i = 0; i < global_paging->num_frames; i++) {
+            if (global_paging->frames[i].vpn >= 0) {
+                printf("│   %2d  │  0x%-4x │   %4d  │    %4d     │\n",
+                       i, global_paging->frames[i].vpn,
+                       global_paging->frames[i].loaded_at,
+                       global_paging->frames[i].last_access);
+            } else {
+                printf("│   %2d  │  (empty) │    -    │      -      │\n", i);
+            }
+        }
+        printf("└───────┴─────────┴─────────┴─────────────┘\n");
+        printf("\n");
+        
+        int total = global_paging->page_hits + global_paging->page_faults;
+        double hit_rate = total > 0 ? (double)global_paging->page_hits / total * 100 : 0;
+        printf("Statistics:\n");
+        printf("  Page Hits:   %d\n", global_paging->page_hits);
+        printf("  Page Faults: %d\n", global_paging->page_faults);
+        printf("  Hit Rate:    %.1f%%\n", hit_rate);
+        printf("\n");
+        
+    } else if (strcmp(subcmd, "flush") == 0) {
+        if (global_paging == NULL) {
+            printf("Paging not initialized.\n");
+            return;
+        }
+        
+        for (int i = 0; i < global_paging->num_frames; i++) {
+            global_paging->frames[i].vpn = -1;
+        }
+        global_paging->page_hits = 0;
+        global_paging->page_faults = 0;
+        global_paging->access_counter = 0;
+        printf("[OK] Paging simulator flushed\n");
+        
+    } else {
+        printf("Unknown paging command: %s\n", subcmd);
+        printf("Usage: paging <init|access|status|flush> [args]\n");
+    }
+}
+
 static void cmd_sysinfo(void) {
     SystemMemInfo info;
     
@@ -552,6 +781,9 @@ static void run_shell(void) {
             
         } else if (strcmp(cmd, "tlb") == 0) {
             cmd_tlb(arg1, arg2, arg3);
+            
+        } else if (strcmp(cmd, "paging") == 0) {
+            cmd_paging(arg1, arg2);
             
         } else if (strcmp(cmd, "sysinfo") == 0) {
             cmd_sysinfo();

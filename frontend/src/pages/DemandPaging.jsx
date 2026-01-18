@@ -366,7 +366,15 @@ function DemandPaging() {
                   <Zap size={18} />
                   Access Page
                 </h3>
-                <span style={{ fontSize: '0.7rem', color: 'var(--accent-purple)', background: 'rgba(139, 92, 246, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>
+                <span style={{ 
+                  fontSize: '0.85rem', 
+                  fontWeight: '600',
+                  color: 'var(--accent-cyan)', 
+                  background: 'rgba(6, 182, 212, 0.15)', 
+                  padding: '4px 12px', 
+                  borderRadius: '6px',
+                  border: '1px solid rgba(6, 182, 212, 0.3)'
+                }}>
                   {pagingData?.policy || 'LRU'}
                 </span>
               </div>
