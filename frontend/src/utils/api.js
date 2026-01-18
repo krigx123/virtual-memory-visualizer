@@ -138,6 +138,10 @@ export async function runPagingSequence(addresses) {
   })
 }
 
+export async function resetAll() {
+  return fetchAPI('/reset-all', { method: 'POST' })
+}
+
 // =============================================================================
 // Utility Functions
 // =============================================================================

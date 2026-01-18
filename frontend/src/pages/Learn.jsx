@@ -204,47 +204,105 @@ function Learn() {
         ))}
       </div>
 
-      {/* Quick Reference */}
+      {/* Quick Reference - Visual Address Breakdown */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.6 }}
+        transition={{ delay: 0.8 }}
         className="card"
         style={{ marginTop: 'var(--spacing-xl)' }}
       >
-        <h3 style={{ 
-          fontSize: '1.1rem', 
-          fontWeight: '600', 
-          marginBottom: 'var(--spacing-lg)' 
-        }}>
-          Quick Reference: x86_64 Virtual Address
-        </h3>
-        
-        <div style={{
-          fontFamily: 'var(--font-mono)',
-          background: 'var(--bg-tertiary)',
-          padding: 'var(--spacing-lg)',
-          borderRadius: 'var(--radius-md)',
-          overflowX: 'auto'
-        }}>
-          <pre style={{ margin: 0, lineHeight: '1.8' }}>
-{`┌─────────────────────────────────────────────────────────────────────────────┐
-│                         48-bit Virtual Address                              │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  63    48 │ 47    39 │ 38    30 │ 29    21 │ 20    12 │ 11           0 │
-│  (unused) │   PML4   │   PDPT   │    PD    │    PT    │   Page Offset  │
-│  16 bits  │  9 bits  │  9 bits  │  9 bits  │  9 bits  │    12 bits     │
-└───────────┴──────────┴──────────┴──────────┴──────────┴────────────────┘
-
-Translation Process:
-  1. CR3 register points to PML4 table base address
-  2. PML4[bits 47-39] → PDPT base address
-  3. PDPT[bits 38-30] → PD base address
-  4. PD[bits 29-21] → PT base address
-  5. PT[bits 20-12] → Physical Frame Number (PFN)
-  6. Physical Address = (PFN << 12) | Page Offset
-`}
-          </pre>
+        <div style={{ display: 'flex', gap: 'var(--spacing-lg)', alignItems: 'flex-start' }}>
+          <div style={{
+            width: 56,
+            height: 56,
+            borderRadius: 'var(--radius-md)',
+            background: 'rgba(6, 182, 212, 0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--accent-cyan)',
+            flexShrink: 0,
+            fontSize: '1.5rem'
+          }}>
+            🗺️
+          </div>
+          
+          <div style={{ flex: 1 }}>
+            <h3 style={{ 
+              fontSize: '1.1rem', 
+              fontWeight: '600', 
+              marginBottom: 'var(--spacing-md)',
+              color: 'var(--accent-cyan)'
+            }}>
+              Quick Reference: 48-bit Virtual Address (x86_64)
+            </h3>
+            
+            {/* Visual Address Breakdown */}
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(6, 1fr)', 
+              gap: '4px',
+              marginBottom: 'var(--spacing-lg)'
+            }}>
+              {[
+                { label: 'Unused', bits: '63-48', color: 'var(--text-muted)', bg: 'var(--bg-tertiary)' },
+                { label: 'PML4', bits: '47-39', color: 'var(--accent-purple)', bg: 'rgba(139, 92, 246, 0.2)' },
+                { label: 'PDPT', bits: '38-30', color: 'var(--accent-blue)', bg: 'rgba(59, 130, 246, 0.2)' },
+                { label: 'PD', bits: '29-21', color: 'var(--accent-cyan)', bg: 'rgba(6, 182, 212, 0.2)' },
+                { label: 'PT', bits: '20-12', color: 'var(--accent-green)', bg: 'rgba(16, 185, 129, 0.2)' },
+                { label: 'Offset', bits: '11-0', color: 'var(--accent-orange)', bg: 'rgba(245, 158, 11, 0.2)' },
+              ].map((segment, i) => (
+                <div 
+                  key={i}
+                  style={{
+                    background: segment.bg,
+                    borderRadius: 'var(--radius-sm)',
+                    padding: 'var(--spacing-sm)',
+                    textAlign: 'center',
+                    border: `1px solid ${segment.color}30`
+                  }}
+                >
+                  <div style={{ 
+                    fontSize: '0.85rem', 
+                    fontWeight: '600', 
+                    color: segment.color,
+                    marginBottom: '2px'
+                  }}>
+                    {segment.label}
+                  </div>
+                  <div style={{ 
+                    fontSize: '0.7rem', 
+                    color: 'var(--text-muted)',
+                    fontFamily: 'var(--font-mono)'
+                  }}>
+                    bits {segment.bits}
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {/* Translation Steps */}
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: 'var(--spacing-md)',
+              fontSize: '0.85rem'
+            }}>
+              <div>
+                <div style={{ color: 'var(--text-muted)', marginBottom: '4px' }}>1. Start</div>
+                <code style={{ color: 'var(--accent-cyan)' }}>CR3 → PML4</code>
+              </div>
+              <div>
+                <div style={{ color: 'var(--text-muted)', marginBottom: '4px' }}>2-4. Walk Tables</div>
+                <code style={{ color: 'var(--accent-cyan)' }}>PML4 → PDPT → PD → PT</code>
+              </div>
+              <div>
+                <div style={{ color: 'var(--text-muted)', marginBottom: '4px' }}>5. Result</div>
+                <code style={{ color: 'var(--accent-green)' }}>PT[index] → PFN</code>
+              </div>
+            </div>
+          </div>
         </div>
       </motion.div>
     </div>

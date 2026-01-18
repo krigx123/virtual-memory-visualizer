@@ -755,6 +755,42 @@ def health_check():
     })
 
 
+@app.route('/api/reset-all', methods=['POST'])
+def reset_all():
+    """Reset all simulators (TLB and Paging) to initial state."""
+    global tlb_state, paging_state
+    
+    # Reset TLB
+    tlb_state = {
+        'initialized': False,
+        'size': 16,
+        'policy': 'LRU',
+        'entries': [],
+        'hits': 0,
+        'misses': 0
+    }
+    
+    # Reset Paging
+    paging_state = {
+        'initialized': False,
+        'num_frames': 4,
+        'policy': 'LRU',
+        'frames': [],
+        'page_table': {},
+        'page_faults': 0,
+        'page_hits': 0,
+        'disk_reads': 0,
+        'access_counter': 0,
+        'access_history': [],
+        'clock_hand': 0
+    }
+    
+    return jsonify({
+        'success': True,
+        'message': 'All simulators reset to initial state'
+    })
+
+
 # =============================================================================
 # Main
 # =============================================================================

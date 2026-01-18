@@ -8,9 +8,10 @@ import {
   TrendingUp,
   AlertCircle,
   CheckCircle,
-  Server
+  Server,
+  RotateCcw
 } from 'lucide-react'
-import { getSystemMemory, getProcesses, healthCheck, formatBytes } from '../utils/api'
+import { getSystemMemory, getProcesses, healthCheck, formatBytes, resetAll } from '../utils/api'
 
 function Dashboard() {
   const [systemMem, setSystemMem] = useState(null)
@@ -108,13 +109,24 @@ function Dashboard() {
             </span>
           </>
         )}
-        <button 
-          onClick={loadData}
-          className="btn btn-secondary"
-          style={{ marginLeft: 'auto', padding: '0.5rem 1rem' }}
-        >
-          Refresh
-        </button>
+        <div style={{ display: 'flex', gap: 'var(--spacing-sm)', marginLeft: 'auto' }}>
+          <button 
+            onClick={() => resetAll()}
+            className="btn btn-secondary"
+            style={{ padding: '0.5rem 1rem' }}
+            title="Reset TLB and Paging simulators"
+          >
+            <RotateCcw size={14} />
+            Reset Simulators
+          </button>
+          <button 
+            onClick={loadData}
+            className="btn btn-secondary"
+            style={{ padding: '0.5rem 1rem' }}
+          >
+            Refresh
+          </button>
+        </div>
       </motion.div>
 
       {/* Stats Grid */}
