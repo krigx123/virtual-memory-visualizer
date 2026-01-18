@@ -193,6 +193,7 @@ function MemoryPlayground() {
         animate={{ opacity: 1 }}
         className="card"
         style={{ 
+          marginTop: 'var(--spacing-lg)',
           marginBottom: 'var(--spacing-xl)',
           background: 'rgba(245, 158, 11, 0.1)',
           borderLeft: '4px solid var(--accent-orange)'
