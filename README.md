@@ -29,141 +29,48 @@ An interactive visualization tool for understanding virtual memory concepts in o
 ```
 virtual-memory-visualizer/
 ├── backend/                    # C Backend
-│   ├── src/
-│   │   ├── vmem_types.h       # Data structures
-│   │   ├── proc_reader.c/h    # /proc filesystem reader
-│   │   ├── addr_translate.c/h # Address translation
-│   │   ├── tlb_sim.c/h        # TLB simulation (LRU/FIFO/Random/Clock)
-│   │   ├── json_output.c/h    # JSON serialization
-│   │   └── vmem_shell.c       # Interactive CLI + Paging simulator
+│   ├── src/                    # Core logic (translation, /proc reader, simulators)
 │   └── Makefile
 │
 ├── api/                        # Python API
-│   ├── app.py                 # Flask server (TLB + Paging state)
+│   ├── app.py                  # Flask server
 │   └── requirements.txt
 │
 └── frontend/                   # React Frontend
-    ├── src/
-    │   ├── pages/
-    │   │   ├── Dashboard.jsx       # System overview
-    │   │   ├── ProcessView.jsx     # Memory regions
-    │   │   ├── AddressTranslator.jsx # Page table walk
-    │   │   ├── TLBSimulator.jsx    # TLB simulation
-    │   │   ├── DemandPaging.jsx    # Demand paging simulator
-    │   │   ├── MemoryPlayground.jsx # Active OS interaction
-    │   │   └── Learn.jsx           # OS concepts (8 topics)
-    │   ├── utils/api.js
-    │   ├── App.jsx
-    │   └── index.css
+    ├── src/                    # Components and pages
     └── package.json
 ```
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Installation & Setup
 
-### Prerequisites
-- **Windows with WSL** (Ubuntu/Fedora) OR **Native Linux**
-- **GCC** - C compiler (in WSL/Linux)
-- **Python 3.8+** with Flask (in WSL/Linux)
-- **Node.js 18+** - For React frontend (Windows or WSL)
+### 🐧 Option 1: Native Linux (Recommended)
 
----
-
-## 🖥️ Running on Windows with WSL
-
-### Step 1: Build C Backend (in WSL)
-
-**Option A - From PowerShell:**
-```powershell
-wsl -e bash -c "cd '/mnt/c/Users/YourName/path/to/virtual-memory-visualizer/backend' && make"
-```
-
-**Option B - In WSL Terminal:**
-```bash
-cd /mnt/c/Users/YourName/path/to/virtual-memory-visualizer/backend
-make
-```
-
-Expected output:
-```
-gcc -Wall -Wextra -g -O2 -c src/addr_translate.c -o obj/addr_translate.o
-...
-Build complete: bin/vmem_shell
-```
-
-### Step 2: Test CLI in WSL
-
-```bash
-cd /mnt/c/Users/YourName/path/to/virtual-memory-visualizer/backend
-./bin/vmem_shell    # Basic mode
-sudo ./bin/vmem_shell   # Full pagemap access
-```
-
-### Step 3: Install Python Dependencies (WSL)
-
-**For Fedora WSL:**
-```bash
-sudo dnf install -y python3-pip python3-flask python3-flask-cors
-```
-
-**For Ubuntu WSL:**
-```bash
-sudo apt update
-sudo apt install -y python3-pip python3-flask
-pip3 install flask-cors
-```
-
-### Step 4: Start API Server (WSL Terminal)
-
-```bash
-cd /mnt/c/Users/YourName/path/to/virtual-memory-visualizer/api
-python3 app.py
-```
-Server runs on `http://localhost:5000`
-
-### Step 5: Start React Frontend (Windows PowerShell)
-
-```powershell
-cd C:\path\to\virtual-memory-visualizer\frontend
-npm install
-npm run dev
-```
-Frontend runs on `http://localhost:3000`
-
----
-
-## 🐧 Running on Native Linux
-
-### Step 1: Build C Backend
-
+**1. Build C Backend**
 ```bash
 cd backend
 make
 ```
 
-### Step 2: Test CLI
-
+**2. Test CLI (Optional)**
 ```bash
 sudo ./bin/vmem_shell
 ```
 
-### Step 3: Install Python Dependencies
-
+**3. Install Python Dependencies**
 ```bash
 cd api
 pip install -r requirements.txt
 ```
 
-### Step 4: Start API Server
-
+**4. Start API Server**
 ```bash
 python app.py
 ```
 Server runs on `http://localhost:5000`
 
-### Step 5: Start React Frontend
-
+**5. Start React Frontend**
 ```bash
 cd frontend
 npm install
@@ -171,277 +78,207 @@ npm run dev
 ```
 Frontend runs on `http://localhost:3000`
 
+### 🖥️ Option 2: Windows with WSL
+
+**1. Build Backend (WSL Terminal)**
+```bash
+cd /mnt/c/Users/YourName/path/to/virtual-memory-visualizer/backend
+make
+```
+
+**2. Install Python Deps (WSL)**
+```bash
+# Ubuntu/Debian
+sudo apt update && sudo apt install -y python3-pip python3-flask
+pip3 install flask-cors
+```
+
+**3. Run API (WSL)**
+```bash
+cd ../api
+python3 app.py
+```
+
+**4. Run Frontend (PowerShell)**
+```powershell
+cd ..\frontend
+npm install
+npm run dev
+```
+
 ---
 
-## 💻 Example CLI Sessions
+## 💻 CLI Commands & Examples
 
-### Process and Memory Analysis
+The tool includes a powerful interactive shell (`vmem_shell`) for demonstration.
 
+### Process Commands
+
+#### `ps`
+List all running processes, sorted by memory usage (descending).
 ```
-╔══════════════════════════════════════════════════════════════╗
-║        Virtual Memory Visualization Tool - CLI v1.0          ║
-╚══════════════════════════════════════════════════════════════╝
-
 vmem> ps
   PID     NAME              MEMORY      STATE
   1892    firefox           524.3 MB    S
   2341    code              312.5 MB    S
   2541    python3           42.1 MB     S
-  234     NetworkManager    15.7 MB     S
-  1       systemd           13.0 MB     S
+```
 
+#### `select <pid>`
+Select a process to analyze.
+```
 vmem> select 1892
 [OK] Selected process 1892 (firefox)
+```
 
+#### `unselect`
+Deselect the current process.
+```
+vmem> unselect
+[OK] Deselected process 1892 (firefox)
+```
+
+### Memory Analysis (requires selected process)
+
+#### `maps`
+Show memory regions (stack, heap, etc.) from `/proc/[pid]/maps`.
+```
 vmem> maps
-MEMORY REGIONS FOR PID 1892 (firefox)
-==================================================
   START ADDRESS     END ADDRESS       SIZE     PERM  TYPE           NAME
   0x55a4b2c00000    0x55a4b2d40000    1.3 MB   r-xp  Code           /usr/lib/firefox/firefox
   0x55a4b3000000    0x55a4b5000000    32.0 MB  rw-p  Heap           [heap]
-  0x7f8a40000000    0x7f8a40021000    132 KB   rw-p  Data           [anon]
-  0x7ffca8700000    0x7ffca8721000    132 KB   rw-p  Stack          [stack]
+```
 
+#### `translate <addr>`
+Translate a virtual address to a physical address using `/proc/[pid]/pagemap`.
+```
 vmem> translate 0x55a4b2c00000
-ADDRESS TRANSLATION
-====================
 Virtual Address:  0x55a4b2c00000
 Virtual Page Num: 0x55a4b2c00
 Physical Frame:   0x1a4b2c00
 Physical Address: 0x1a4b2c00000
-Page Offset:      0x000
+```
 
+#### `pagewalk <addr>`
+Simulate a 4-level page table walk (PML4 -> PDPT -> PD -> PT).
+```
 vmem> pagewalk 0x55a4b2c00000
-4-LEVEL PAGE TABLE WALK
-========================
-Virtual Address: 0x55a4b2c00000 (binary breakdown below)
-
 PML4 Index:    0x0AB (bits 47-39)  → PML4[171] 
 PDPT Index:    0x125 (bits 38-30)  → PDPT[293]
-PD Index:      0x016 (bits 29-21)  → PD[22]
-PT Index:      0x000 (bits 20-12)  → PT[0]
-Page Offset:   0x000 (bits 11-0)
-
-Result: ✓ Valid mapping found
+...
 Physical Frame: 0x1a4b2c00
 ```
 
-### TLB Simulator Session
+#### `stats`
+Show detailed memory statistics for the process.
+```
+vmem> stats
+Virtual Size:    2.4 GB
+Resident (RSS):  524.3 MB
+Data Segment:    1.1 GB
+```
 
+#### `faults`
+Show page fault statistics (minor/major).
+
+### TLB Simulator
+
+#### `tlb init <size> [policy]`
+Initialize the TLB. Policies: `LRU`, `FIFO`, `RANDOM`, `CLOCK`.
 ```
 vmem> tlb init 8 LRU
 [OK] TLB initialized with 8 entries (LRU replacement)
+```
 
+#### `tlb access <addr>`
+Access an address. If not in TLB, it's a MISS (and inserted).
+```
 vmem> tlb access 0x1000
 [TLB MISS] VPN 0x1 not found
 [TLB INSERT] VPN 0x1 -> PFN 0x1 (simulated)
 
-vmem> tlb access 0x2000
-[TLB MISS] VPN 0x2 not found
-[TLB INSERT] VPN 0x2 -> PFN 0x2 (simulated)
-
 vmem> tlb access 0x1000
 [TLB HIT] VPN 0x1 -> PFN 0x1
-
-vmem> tlb status
-TLB STATUS
-==========
-Size: 8 entries | Policy: LRU
-
-┌───────┬─────────┬─────────┬───────┬─────────────┐
-│ Index │   VPN   │   PFN   │ Valid │ Last Access │
-├───────┼─────────┼─────────┼───────┼─────────────┤
-│   0   │  0x1    │  0x1    │   ✓   │     2       │
-│   1   │  0x2    │  0x2    │   ✓   │     1       │
-│   2   │   -     │   -     │   ✗   │     -       │
-│   3   │   -     │   -     │   ✗   │     -       │
-│   4   │   -     │   -     │   ✗   │     -       │
-│   5   │   -     │   -     │   ✗   │     -       │
-│   6   │   -     │   -     │   ✗   │     -       │
-│   7   │   -     │   -     │   ✗   │     -       │
-└───────┴─────────┴─────────┴───────┴─────────────┘
-
-Statistics:
-  Hits:     1
-  Misses:   2
-  Hit Rate: 33.3%
 ```
 
-### Demand Paging Simulator Session
+#### `tlb status`
+Show current TLB entries and hit/miss statistics.
 
-```
-vmem> paging init 4 FIFO
-[OK] Paging simulator initialized with 4 frames (FIFO replacement)
-
-vmem> paging access 0x1000
-[PAGE FAULT] VPN 0x1 not in memory, loaded into Frame 0
-
-vmem> paging access 0x2000
-[PAGE FAULT] VPN 0x2 not in memory, loaded into Frame 1
-
-vmem> paging access 0x3000
-[PAGE FAULT] VPN 0x3 not in memory, loaded into Frame 2
-
-vmem> paging access 0x4000
-[PAGE FAULT] VPN 0x4 not in memory, loaded into Frame 3
-
-vmem> paging access 0x5000
-[PAGE FAULT] VPN 0x5 not in memory, evicted VPN 0x1 from Frame 0
-
-vmem> paging access 0x1000
-[PAGE FAULT] VPN 0x1 not in memory, evicted VPN 0x2 from Frame 1
-
-vmem> paging status
-
-PAGING SIMULATOR STATUS
-=======================
-Frames: 4 | Policy: FIFO
-
-Physical Memory Frames:
-┌───────┬─────────┬─────────┬─────────────┐
-│ Frame │   VPN   │ Loaded  │ Last Access │
-├───────┼─────────┼─────────┼─────────────┤
-│    0  │  0x5    │      4  │       4     │
-│    1  │  0x1    │      5  │       5     │
-│    2  │  0x3    │      2  │       2     │
-│    3  │  0x4    │      3  │       3     │
-└───────┴─────────┴─────────┴─────────────┘
-
-Statistics:
-  Page Hits:   0
-  Page Faults: 6
-  Hit Rate:    0.0%
-```
-
-### Memory Playground Session (Active OS Interaction)
-
-```
-vmem> mem alloc 50
-[OK] Allocated 50 MB (Region #0, 12800 pages touched)
-     Address: 0x7f8a40000000
-
-vmem> mem alloc 25
-[OK] Allocated 25 MB (Region #1, 6400 pages touched)
-     Address: 0x7f8a10000000
-
-vmem> mem lock 0
-[OK] Locked Region #0 (50 MB) - cannot be swapped out
-
-vmem> mem advise 1 WILLNEED
-[OK] Applied WILLNEED hint to Region #1
-
-vmem> mem status
-
-MEMORY PLAYGROUND STATUS
-========================
-
-Active Regions: 2 / 32
-Total Allocated: 75 MB
-Total Locked: 50 MB
-
-┌────┬────────────────────┬──────────┬────────┬────────────┐
-│ ID │      Address       │   Size   │ Locked │   Advice   │
-├────┼────────────────────┼──────────┼────────┼────────────┤
-│  0 │   0x7f8a40000000   │   50 MB  │   ✓   │ NORMAL     │
-│  1 │   0x7f8a10000000   │   25 MB  │   ✗   │ WILLNEED   │
-└────┴────────────────────┴──────────┴────────┴────────────┘
-
-vmem> mem free 1
-[OK] Freed Region #1 (25 MB)
-
-vmem> mem reset
-[OK] Freed 1 regions (50 MB total)
-```
-
----
-
-## 📖 Usage Guide
-
-### Dashboard
-- View system memory statistics (total, free, cached)
-- See top processes by memory usage
-- Visual memory distribution bar
-
-### Process Memory
-- Select any running process
-- View all memory regions (stack, heap, code, libs)
-- See permissions (rwx) and sizes
-
-### Address Translator
-1. Select a process
-2. Enter a virtual address (e.g., `0x7fff00010000`)
-3. Click "Translate Address"
-4. See the full 4-level page table walk
-5. View binary address breakdown
-
-### TLB Simulator
-1. Select replacement policy (LRU, FIFO, Random, Clock)
-2. Initialize TLB with desired size
-3. Use quick access buttons or enter addresses
-4. Watch hit/miss indicators with animations
-5. View statistics and reconfigure as needed
+#### `tlb flush`
+Clear all TLB entries.
 
 ### Demand Paging Simulator
-1. Configure number of frames (2-16)
-2. Select replacement policy
-3. Access pages using quick buttons or sequence input
-4. Watch page faults and frame allocation
-5. See eviction when memory is full
 
-### Learn Mode
-Study 8 OS concepts:
-- Virtual Memory
-- Address Translation (VPN/PFN explained)
-- 4-Level Page Table (x86_64)
-- Translation Lookaside Buffer (TLB)
-- Demand Paging
-- Page Replacement Algorithms
-- Page Faults
-- Memory Regions
+#### `paging init <frames> [policy]`
+Initialize physical memory frames.
+```
+vmem> paging init 4 FIFO
+[OK] Paging simulator initialized with 4 frames
+```
+
+#### `paging access <addr>`
+Access a page. Simulates page faults and eviction.
+```
+vmem> paging access 0x5000
+[PAGE FAULT] VPN 0x5 not in memory, evicted VPN 0x1 from Frame 0
+```
+
+#### `paging status`
+Show current frames and loaded pages.
+
+### Memory Playground (Active OS Interaction)
+
+#### `mem alloc <mb>`
+Allocate memory using `mmap()`.
+```
+vmem> mem alloc 50
+[OK] Allocated 50 MB (Region #0) at 0x7f8a40000000
+```
+
+#### `mem lock <id>`
+Lock a memory region using `mlock()`, preventing it from being swapped.
+```
+vmem> mem lock 0
+[OK] Locked Region #0
+```
+
+#### `mem advise <id> <hint>`
+Apply `madvise()` hints like `WILLNEED`, `DONTNEED`, `SEQUENTIAL`, `RANDOM`.
+```
+vmem> mem advise 0 SEQUENTIAL
+[OK] Applied SEQUENTIAL hint to Region #0
+```
+
+#### `mem free <id>` / `mem reset`
+Free specific or all allocated regions.
 
 ---
 
-## 🎓 Teacher Demo Script
+## 🖥️ Frontend Guide
 
-### 1. Show C code structure
-```bash
-cat backend/src/addr_translate.c   # Page table walk logic
-cat backend/src/tlb_sim.c          # TLB with 4 policies
-cat backend/src/vmem_shell.c       # Paging simulator
-```
+Measurements and visualizations are available via the web interface:
 
-### 2. Run terminal demo
-```bash
-sudo ./backend/bin/vmem_shell
+1.  **Dashboard**: System-wide memory overview and top processes.
+2.  **Process View**: Select a process to see its memory map (Code/Heap/Stack) and permissions.
+3.  **Address Translator**: Enter a virtual address to see the exact 4-level page table derivation.
+4.  **TLB Simulator**: Visual simulation of TLB hits/misses. Click squares to access pages and watch the cache fill.
+5.  **Demand Paging**: Watch pages move in and out of physical frames. Green = Loaded, Red = Evicted.
+6.  **Memory Playground**: Use sliders to allocate real system memory and toggle locks to see OS behavior.
 
-# Process analysis
-vmem> ps
-vmem> select <firefox_pid>
-vmem> maps
-vmem> pagewalk 0x7fff00010000
+---
 
-# TLB demo
-vmem> tlb init 8 LRU
-vmem> tlb access 0x1000
-vmem> tlb access 0x2000
-vmem> tlb access 0x1000   # HIT!
-vmem> tlb status
+## 🧪 OS Concepts Demonstrated
 
-# Paging demo
-vmem> paging init 4 FIFO
-vmem> paging access 0x1000
-vmem> paging access 0x2000
-vmem> paging access 0x3000
-vmem> paging access 0x4000
-vmem> paging access 0x5000  # Eviction!
-vmem> paging status
-```
-
-### 3. Show web interface
-- Open http://localhost:3000
-- Navigate through all pages
-- Demonstrate TLB with different policies
-- Show Demand Paging with eviction
+| Concept | Explanation |
+|---------|-------------|
+| **Virtual Memory** | How OS abstracts physical RAM into a large virtual address space. |
+| **Address Translation** | Mapping Virtual Page Numbers (VPN) to Physical Frame Numbers (PFN). |
+| **Page Tables** | Hierarchical structures (PML4, PDPT, PD, PT) used for translation. |
+| **TLB** | Specialized cache to speed up translation. |
+| **Demand Paging** | Loading pages only when accessed (Page Faults). |
+| **Page Replacement** | Algorithms (LRU, FIFO) to decide which page to evict when memory is full. |
+| **Memory Regions** | Segments like Stack (local vars), Heap (dynamic alloc), Code (instructions). |
+| **Memory Protection** | Permissions (Read/Write/Execute) enforcing security. |
 
 ---
 
@@ -449,103 +286,20 @@ vmem> paging status
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/health` | API health check |
-| GET | `/api/processes` | List all processes |
-| GET | `/api/process/<pid>/maps` | Get memory regions |
-| GET | `/api/process/<pid>/translate/<addr>` | Translate address |
-| GET | `/api/process/<pid>/stats` | Get memory stats |
-| GET | `/api/system/memory` | System memory info |
-| POST | `/api/tlb/init` | Initialize TLB `{size, policy}` |
-| POST | `/api/tlb/access` | Access TLB `{vpn, pfn}` |
-| GET | `/api/tlb/status` | Get TLB state |
-| POST | `/api/tlb/flush` | Flush TLB |
-| POST | `/api/paging/init` | Initialize paging `{frames, policy}` |
-| POST | `/api/paging/access` | Access page `{vpn}` |
-| GET | `/api/paging/status` | Get paging state |
-| POST | `/api/paging/sequence` | Run sequence `{addresses: [...]}` |
+| `GET` | `/api/processes` | List all processes |
+| `GET` | `/api/process/<pid>/maps` | Get memory regions |
+| `GET` | `/api/process/<pid>/translate/<addr>` | Translate address |
+| `GET` | `/api/system/memory` | System memory info |
+| `POST` | `/api/tlb/init` | Initialize TLB |
+| `POST` | `/api/tlb/access` | Access TLB |
+| `POST` | `/api/paging/init` | Initialize paging |
+| `POST` | `/api/paging/access` | Access page |
 
 ---
-
-## 🧪 OS Concepts Demonstrated
-
-| Concept | Where | Algorithms |
-|---------|-------|------------|
-| Virtual Memory | Dashboard, Process View | - |
-| Page Tables | Address Translator | 4-level walk |
-| Address Translation | Address Translator | VPN → PFN |
-| TLB | TLB Simulator | LRU, FIFO, Random, Clock |
-| Demand Paging | Demand Paging Sim | On-demand loading |
-| Page Replacement | Both Simulators | LRU, FIFO, Random, Clock |
-| Page Faults | Stats, Simulators | Major/Minor |
-| Memory Regions | Process View | Stack, Heap, Code |
-| Memory Protection | Process View | rwx permissions |
-
----
-
-## 🛠️ CLI Command Reference
-
-### Process Commands
-| Command | Arguments | Description |
-|---------|-----------|-------------|
-| `ps` | - | List all processes (sorted by memory usage) |
-| `select` | `<pid>` | Select a process to analyze |
-| `unselect` | - | Deselect current process |
-
-### Memory Analysis (requires selected process)
-| Command | Arguments | Description |
-|---------|-----------|-------------|
-| `maps` | - | Show memory regions (from /proc/[pid]/maps) |
-| `translate` | `<addr>` | Translate virtual address to physical |
-| `pagewalk` | `<addr>` | Show detailed page table walk |
-| `stats` | - | Show memory statistics |
-| `faults` | - | Show page fault statistics |
-
-### TLB Simulator
-| Command | Arguments | Description |
-|---------|-----------|-------------|
-| `tlb init` | `<size> [policy]` | Initialize TLB (LRU, FIFO, RANDOM, CLOCK) |
-| `tlb lookup` | `<addr>` | Lookup address in TLB |
-| `tlb access` | `<addr>` | Access address (lookup + insert on miss) |
-| `tlb status` | - | Show TLB contents and statistics |
-| `tlb flush` | - | Flush all TLB entries |
-
-### Demand Paging Simulator
-| Command | Arguments | Description |
-|---------|-----------|-------------|
-| `paging init` | `<frames> [policy]` | Initialize Paging (LRU, FIFO, RANDOM, CLOCK) |
-| `paging access` | `<addr>` | Access page (may cause page fault) |
-| `paging status` | - | Show physical memory frames and statistics |
-| `paging flush` | - | Clear all frames |
-
-### Memory Playground (Active OS Interaction)
-| Command | Arguments | Description |
-|---------|-----------|-------------|
-| `mem alloc` | `<mb>` | Allocate memory using mmap() |
-| `mem lock` | `<id>` | Lock region with mlock() |
-| `mem unlock` | `<id>` | Unlock region with munlock() |
-| `mem advise` | `<id> <hint>` | Apply madvise() hint (WILLNEED, DONTNEED, etc.) |
-| `mem free` | `<id>` | Free allocated region |
-| `mem status` | - | Show all allocated regions |
-| `mem reset` | - | Free all regions |
-
-### System Information
-| Command | Arguments | Description |
-|---------|-----------|-------------|
-| `sysinfo` | - | Show system memory information |
-
-### Other
-| Command | Arguments | Description |
-|---------|-----------|-------------|
-| `help` | - | Show help message |
-| `clear` | - | Clear screen |
-| `exit` | - | Exit the shell |
-
----
-
-## 📜 License
-
-MIT License - Free for educational use
 
 ## 👥 Team
 
-OS Lab Project - Virtual Memory Visualization Tool
+**OS Lab Project - Virtual Memory Visualization Tool**
+
+*   **Advik Aggarwal** (1RV24CS019)
+*   **Aarti Shirvante Pai** (1RV24CS006)
