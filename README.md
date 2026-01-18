@@ -14,6 +14,7 @@ An interactive visualization tool for understanding virtual memory concepts in o
 - **4-Level Page Table Walk** - Step-by-step visualization of x86_64 paging
 - **TLB Simulator** - Interactive TLB with LRU, FIFO, Random, and Clock replacement
 - **Demand Paging Simulator** - Physical memory frames, page faults, replacement policies
+- **Memory Playground** - Active OS interaction with mmap(), mlock(), madvise()
 - **Memory Statistics** - Real-time system and process memory info
 - **Learn Mode** - Educational content on 8 OS concepts
 
@@ -49,6 +50,7 @@ virtual-memory-visualizer/
     │   │   ├── AddressTranslator.jsx # Page table walk
     │   │   ├── TLBSimulator.jsx    # TLB simulation
     │   │   ├── DemandPaging.jsx    # Demand paging simulator
+    │   │   ├── MemoryPlayground.jsx # Active OS interaction
     │   │   └── Learn.jsx           # OS concepts (8 topics)
     │   ├── utils/api.js
     │   ├── App.jsx
@@ -308,6 +310,46 @@ Statistics:
   Page Hits:   0
   Page Faults: 6
   Hit Rate:    0.0%
+```
+
+### Memory Playground Session (Active OS Interaction)
+
+```
+vmem> mem alloc 50
+[OK] Allocated 50 MB (Region #0, 12800 pages touched)
+     Address: 0x7f8a40000000
+
+vmem> mem alloc 25
+[OK] Allocated 25 MB (Region #1, 6400 pages touched)
+     Address: 0x7f8a10000000
+
+vmem> mem lock 0
+[OK] Locked Region #0 (50 MB) - cannot be swapped out
+
+vmem> mem advise 1 WILLNEED
+[OK] Applied WILLNEED hint to Region #1
+
+vmem> mem status
+
+MEMORY PLAYGROUND STATUS
+========================
+
+Active Regions: 2 / 32
+Total Allocated: 75 MB
+Total Locked: 50 MB
+
+┌────┬────────────────────┬──────────┬────────┬────────────┐
+│ ID │      Address       │   Size   │ Locked │   Advice   │
+├────┼────────────────────┼──────────┼────────┼────────────┤
+│  0 │   0x7f8a40000000   │   50 MB  │   ✓   │ NORMAL     │
+│  1 │   0x7f8a10000000   │   25 MB  │   ✗   │ WILLNEED   │
+└────┴────────────────────┴──────────┴────────┴────────────┘
+
+vmem> mem free 1
+[OK] Freed Region #1 (25 MB)
+
+vmem> mem reset
+[OK] Freed 1 regions (50 MB total)
 ```
 
 ---
