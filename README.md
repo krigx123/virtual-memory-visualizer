@@ -183,11 +183,12 @@ Frontend runs on `http://localhost:3000`
 ╚══════════════════════════════════════════════════════════════╝
 
 vmem> ps
-  PID   NAME              STATE  MEMORY       UID
-  1     systemd           S      13.0 MB      0
-  234   NetworkManager    S      15.7 MB      0
-  1892  firefox           S      524.3 MB     1000
-  2541  python3           S      42.1 MB      1000
+  PID     NAME              MEMORY      STATE
+  1892    firefox           524.3 MB    S
+  2341    code              312.5 MB    S
+  2541    python3           42.1 MB     S
+  234     NetworkManager    15.7 MB     S
+  1       systemd           13.0 MB     S
 
 vmem> select 1892
 [OK] Selected process 1892 (firefox)
@@ -478,6 +479,34 @@ vmem> paging status
 | Page Faults | Stats, Simulators | Major/Minor |
 | Memory Regions | Process View | Stack, Heap, Code |
 | Memory Protection | Process View | rwx permissions |
+
+---
+
+---
+
+## 🛠️ CLI Command Reference
+
+| Command | Arguments | Description |
+|---------|-----------|-------------|
+| `ps` | - | List all processes (sorted by memory usage) |
+| `select` | `<pid>` | Select a process to analyze |
+| `maps` | - | Show memory regions for selected process |
+| `translate` | `<addr>` | Translate virtual to physical address |
+| `pagewalk` | `<addr>` | Show 4-level page table walk |
+| `stats` | - | Show memory statistics for selected process |
+| `faults` | - | Show page fault statistics |
+| `sysinfo` | - | Show system-wide memory information |
+| `tlb init` | `<size> [policy]` | Initialize TLB (LRU, FIFO, RANDOM, CLOCK) |
+| `tlb lookup` | `<addr>` | Check if address is in TLB |
+| `tlb access` | `<addr>` | Access address (updates TLB state) |
+| `tlb status` | - | Show TLB entries and stats |
+| `paging init` | `<frames> [policy]` | Initialize Paging Sim (2-64 frames) |
+| `paging access` | `<addr>` | Access page (triggers fault/eviction) |
+| `paging status` | - | Show frames and stats |
+| `mem alloc` | `<mb>` | Allocate memory (max 1000MB) |
+| `mem lock` | `<id>` | Lock region in memory (mlock) |
+| `mem advice` | `<id> <hint>` | Apply madvise hint (WILLNEED, etc.) |
+| `mem free` | `<id>` | Free allocated region |
 
 ---
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  ArrowRightLeft, 
+import {
+  ArrowRightLeft,
   Search,
   ChevronDown,
   CheckCircle,
@@ -37,35 +37,35 @@ function AddressTranslator() {
 
     setLoading(true)
     setError(null)
-    
+
     const res = await translateAddress(selectedPid, virtualAddr)
-    
+
     if (res.success) {
       setResult(res.data)
     } else {
       setError(res.error || 'Translation failed')
       setResult(null)
     }
-    
+
     setLoading(false)
   }
 
   // Convert virtual address to binary representation
   function addressToBinary(addr) {
     if (!addr) return null
-    
+
     let numAddr
     if (typeof addr === 'string') {
       numAddr = addr.startsWith('0x') ? parseInt(addr, 16) : parseInt(addr)
     } else {
       numAddr = addr
     }
-    
+
     if (isNaN(numAddr)) return null
-    
+
     // Get 48-bit binary representation
     const binary = numAddr.toString(2).padStart(48, '0')
-    
+
     return {
       pml4: binary.slice(0, 9),    // bits 47-39
       pdpt: binary.slice(9, 18),   // bits 38-30
@@ -102,12 +102,12 @@ function AddressTranslator() {
           <div className="translator-input">
             <div className="input-group">
               <label>Select Process</label>
-              <select 
-                value={selectedPid} 
+              <select
+                value={selectedPid}
                 onChange={(e) => setSelectedPid(e.target.value)}
               >
                 <option value="">Choose a process...</option>
-                {processes.slice(0, 50).map(proc => (
+                {processes.map(proc => (
                   <option key={proc.pid} value={proc.pid}>
                     {proc.pid} - {proc.name} ({formatBytes(proc.memory_kb * 1024)})
                   </option>
@@ -128,7 +128,7 @@ function AddressTranslator() {
               </span>
             </div>
 
-            <button 
+            <button
               className="btn btn-primary"
               onClick={handleTranslate}
               disabled={loading}
@@ -139,8 +139,8 @@ function AddressTranslator() {
             </button>
 
             {error && (
-              <div style={{ 
-                padding: 'var(--spacing-md)', 
+              <div style={{
+                padding: 'var(--spacing-md)',
                 background: 'rgba(239, 68, 68, 0.1)',
                 border: '1px solid rgba(239, 68, 68, 0.3)',
                 borderRadius: 'var(--radius-md)',
@@ -171,9 +171,9 @@ function AddressTranslator() {
                 exit={{ opacity: 0 }}
               >
                 {/* Status */}
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
                   gap: 'var(--spacing-sm)',
                   marginBottom: 'var(--spacing-lg)'
                 }}>
@@ -211,9 +211,9 @@ function AddressTranslator() {
                 {/* Binary Address Breakdown */}
                 {binaryAddr && (
                   <div style={{ marginBottom: 'var(--spacing-xl)' }}>
-                    <h4 style={{ 
-                      fontSize: '0.9rem', 
-                      fontWeight: '600', 
+                    <h4 style={{
+                      fontSize: '0.9rem',
+                      fontWeight: '600',
                       marginBottom: 'var(--spacing-md)',
                       color: 'var(--text-secondary)'
                     }}>
@@ -246,17 +246,17 @@ function AddressTranslator() {
 
                 {/* Page Table Walk */}
                 <div>
-                  <h4 style={{ 
-                    fontSize: '0.9rem', 
-                    fontWeight: '600', 
+                  <h4 style={{
+                    fontSize: '0.9rem',
+                    fontWeight: '600',
                     marginBottom: 'var(--spacing-md)',
                     color: 'var(--text-secondary)'
                   }}>
                     4-Level Page Table Walk (x86_64)
                   </h4>
-                  
+
                   <div className="page-walk">
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.1 }}
@@ -266,12 +266,12 @@ function AddressTranslator() {
                       <span className="level-index">Index: {result.pml4_index}</span>
                       <span className="level-bits">Bits 47-39 → Page Directory Pointer Table</span>
                     </motion.div>
-                    
+
                     <div className="page-walk-arrow">
                       <ChevronDown size={20} />
                     </div>
-                    
-                    <motion.div 
+
+                    <motion.div
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.2 }}
@@ -281,12 +281,12 @@ function AddressTranslator() {
                       <span className="level-index">Index: {result.pdpt_index}</span>
                       <span className="level-bits">Bits 38-30 → Page Directory</span>
                     </motion.div>
-                    
+
                     <div className="page-walk-arrow">
                       <ChevronDown size={20} />
                     </div>
-                    
-                    <motion.div 
+
+                    <motion.div
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.3 }}
@@ -296,12 +296,12 @@ function AddressTranslator() {
                       <span className="level-index">Index: {result.pd_index}</span>
                       <span className="level-bits">Bits 29-21 → Page Table</span>
                     </motion.div>
-                    
+
                     <div className="page-walk-arrow">
                       <ChevronDown size={20} />
                     </div>
-                    
-                    <motion.div 
+
+                    <motion.div
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.4 }}
@@ -311,12 +311,12 @@ function AddressTranslator() {
                       <span className="level-index">Index: {result.pt_index}</span>
                       <span className="level-bits">Bits 20-12 → Physical Frame</span>
                     </motion.div>
-                    
+
                     <div className="page-walk-arrow">
                       <ChevronDown size={20} />
                     </div>
-                    
-                    <motion.div 
+
+                    <motion.div
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.5 }}
@@ -344,10 +344,10 @@ function AddressTranslator() {
                 key="empty"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                style={{ 
-                  display: 'flex', 
+                style={{
+                  display: 'flex',
                   flexDirection: 'column',
-                  alignItems: 'center', 
+                  alignItems: 'center',
                   justifyContent: 'center',
                   minHeight: '300px',
                   color: 'var(--text-muted)'

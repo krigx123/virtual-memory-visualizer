@@ -48,7 +48,7 @@ void cmd_playground(const char *subcmd, char *arg) {
         if (arg != NULL && *arg != '\0') {
             size_mb = atoi(arg);
             if (size_mb < 1) size_mb = 1;
-            if (size_mb > 500) size_mb = 500;
+            if (size_mb > 1000) size_mb = 1000;
         }
         
         if (playground_count >= MAX_PLAYGROUND_REGIONS) {

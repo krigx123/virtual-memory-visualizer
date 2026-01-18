@@ -670,6 +670,7 @@ def paging_sequence():
         
         # Simulate access (reuse logic from paging_access)
         hit = vpn in paging_state['page_table']
+        evicted = None  # Initialize evicted for access_history tracking
         
         if hit:
             frame_idx = paging_state['page_table'][vpn]
@@ -723,6 +724,17 @@ def paging_sequence():
             }
             paging_state['page_table'][vpn] = frame_idx
             results.append({'vpn': hex(vpn), 'hit': False, 'frame': frame_idx, 'evicted': hex(evicted) if evicted else None})
+        
+        # Record access history (keep last 50)
+        paging_state['access_history'].append({
+            'vpn': vpn,
+            'vpn_hex': hex(vpn),
+            'hit': hit,
+            'frame': frame_idx,
+            'evicted': hex(evicted) if evicted else None
+        })
+        if len(paging_state['access_history']) > 50:
+            paging_state['access_history'] = paging_state['access_history'][-50:]
         
         paging_state['access_counter'] += 1
     

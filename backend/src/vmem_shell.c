@@ -136,20 +136,33 @@ uint64_t parse_address(const char *str) {
  * Command Handlers
  * ============================================================================ */
 
+/* Comparison function for sorting processes by memory (descending) */
+static int compare_proc_by_memory(const void *a, const void *b) {
+    const ProcessInfo *pa = (const ProcessInfo *)a;
+    const ProcessInfo *pb = (const ProcessInfo *)b;
+    /* Sort descending by memory */
+    if (pb->memory_kb > pa->memory_kb) return 1;
+    if (pb->memory_kb < pa->memory_kb) return -1;
+    return 0;
+}
+
 static void cmd_ps(void) {
-    ProcessInfo processes[100];
-    int count = get_process_list(processes, 100);
+    ProcessInfo processes[1000];
+    int count = get_process_list(processes, 1000);
     
     if (count < 0) {
         printf("Failed to read process list\n");
         return;
     }
     
+    /* Sort by memory usage (highest first) */
+    qsort(processes, count, sizeof(ProcessInfo), compare_proc_by_memory);
+    
     printf("\n");
     printf("PID     NAME                            MEMORY      STATE\n");
     printf("------------------------------------------------------------\n");
     
-    for (int i = 0; i < count && i < 50; i++) {
+    for (int i = 0; i < count; i++) {
         char size_buf[32];
         format_size(processes[i].memory_kb * 1024, size_buf, sizeof(size_buf));
         printf("%-7d %-30s %-10s %c\n",
@@ -159,11 +172,8 @@ static void cmd_ps(void) {
                processes[i].state);
     }
     
-    if (count > 50) {
-        printf("... and %d more processes\n", count - 50);
-    }
     printf("\n");
-    printf("Total: %d processes\n", count);
+    printf("Total: %d processes (sorted by memory, high to low)\n", count);
     printf("\n");
 }
 
@@ -618,9 +628,11 @@ int main(int argc, char *argv[]) {
             JsonBuffer *buf = json_buffer_init(0);
             
             if (strcmp(argv[2], "processes") == 0) {
-                ProcessInfo processes[500];
-                int count = get_process_list(processes, 500);
+                ProcessInfo processes[1000];
+                int count = get_process_list(processes, 1000);
                 if (count >= 0) {
+                    /* Sort by memory usage (highest first) */
+                    qsort(processes, count, sizeof(ProcessInfo), compare_proc_by_memory);
                     json_process_list(processes, count, buf);
                 } else {
                     json_error("Failed to read process list", buf);

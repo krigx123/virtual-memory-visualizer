@@ -1,23 +1,23 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  HardDrive, 
-  Lock, 
-  Unlock, 
-  Trash2, 
-  Plus, 
+import {
+  HardDrive,
+  Lock,
+  Unlock,
+  Trash2,
+  Plus,
   RefreshCcw,
   Zap,
   Info,
   AlertTriangle
 } from 'lucide-react'
-import { 
-  playgroundAllocate, 
-  playgroundLock, 
-  playgroundUnlock, 
-  playgroundAdvise, 
-  playgroundFree, 
-  getPlaygroundStatus, 
+import {
+  playgroundAllocate,
+  playgroundLock,
+  playgroundUnlock,
+  playgroundAdvise,
+  playgroundFree,
+  getPlaygroundStatus,
   playgroundReset,
   getSystemMemory
 } from '../utils/api'
@@ -171,14 +171,14 @@ function MemoryPlayground() {
               padding: 'var(--spacing-md) var(--spacing-lg)',
               borderRadius: 'var(--radius-md)',
               marginBottom: 'var(--spacing-lg)',
-              background: message.type === 'success' 
-                ? 'rgba(16, 185, 129, 0.2)' 
+              background: message.type === 'success'
+                ? 'rgba(16, 185, 129, 0.2)'
                 : 'rgba(239, 68, 68, 0.2)',
-              border: `1px solid ${message.type === 'success' 
-                ? 'var(--accent-green)' 
+              border: `1px solid ${message.type === 'success'
+                ? 'var(--accent-green)'
                 : 'var(--accent-red)'}`,
-              color: message.type === 'success' 
-                ? 'var(--accent-green)' 
+              color: message.type === 'success'
+                ? 'var(--accent-green)'
                 : 'var(--accent-red)'
             }}
           >
@@ -192,7 +192,7 @@ function MemoryPlayground() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         className="card"
-        style={{ 
+        style={{
           marginTop: 'var(--spacing-lg)',
           marginBottom: 'var(--spacing-xl)',
           background: 'rgba(245, 158, 11, 0.1)',
@@ -236,18 +236,18 @@ function MemoryPlayground() {
               <input
                 type="range"
                 min="1"
-                max="100"
+                max="1000"
                 value={allocSize}
                 onChange={(e) => setAllocSize(parseInt(e.target.value))}
                 style={{ width: '100%' }}
               />
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                 <span>1 MB</span>
-                <span>100 MB</span>
+                <span>1000 MB</span>
               </div>
             </div>
 
-            <button 
+            <button
               className="btn btn-primary"
               onClick={handleAllocate}
               disabled={loading}
@@ -267,7 +267,7 @@ function MemoryPlayground() {
             style={{ marginBottom: 'var(--spacing-lg)' }}
           >
             <h3 style={{ marginBottom: 'var(--spacing-lg)' }}>Playground Stats</h3>
-            
+
             <div style={{ display: 'grid', gap: 'var(--spacing-md)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--text-secondary)' }}>Total Allocated</span>
@@ -290,7 +290,7 @@ function MemoryPlayground() {
             </div>
 
             {regions.length > 0 && (
-              <button 
+              <button
                 className="btn btn-secondary"
                 onClick={handleReset}
                 disabled={loading}
@@ -311,7 +311,7 @@ function MemoryPlayground() {
               className="card"
             >
               <h3 style={{ marginBottom: 'var(--spacing-lg)' }}>System Memory (Live)</h3>
-              
+
               <div style={{ display: 'grid', gap: 'var(--spacing-md)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: 'var(--text-secondary)' }}>Total</span>
@@ -325,11 +325,11 @@ function MemoryPlayground() {
                   <span style={{ color: 'var(--text-secondary)' }}>Available</span>
                   <span style={{ color: 'var(--accent-green)' }}>{(systemMem.available / 1024 / 1024 / 1024).toFixed(2)} GB</span>
                 </div>
-                
+
                 {/* Memory bar */}
-                <div style={{ 
-                  height: 8, 
-                  borderRadius: 4, 
+                <div style={{
+                  height: 8,
+                  borderRadius: 4,
                   background: 'var(--bg-tertiary)',
                   overflow: 'hidden',
                   marginTop: 'var(--spacing-sm)'
@@ -358,8 +358,8 @@ function MemoryPlayground() {
           </h3>
 
           {regions.length === 0 ? (
-            <div style={{ 
-              textAlign: 'center', 
+            <div style={{
+              textAlign: 'center',
               padding: 'var(--spacing-xxl)',
               color: 'var(--text-muted)'
             }}>
@@ -378,12 +378,12 @@ function MemoryPlayground() {
                     exit={{ opacity: 0, scale: 0.9 }}
                     style={{
                       padding: 'var(--spacing-lg)',
-                      background: region.locked 
-                        ? 'rgba(245, 158, 11, 0.1)' 
+                      background: region.locked
+                        ? 'rgba(245, 158, 11, 0.1)'
                         : 'var(--bg-tertiary)',
                       borderRadius: 'var(--radius-md)',
-                      border: region.locked 
-                        ? '1px solid var(--accent-orange)' 
+                      border: region.locked
+                        ? '1px solid var(--accent-orange)'
                         : '1px solid var(--border-primary)'
                     }}
                   >
@@ -405,9 +405,9 @@ function MemoryPlayground() {
                           <div style={{ fontWeight: '600' }}>
                             Region #{region.id}
                             {region.locked && (
-                              <span style={{ 
-                                marginLeft: 'var(--spacing-sm)', 
-                                fontSize: '0.75rem', 
+                              <span style={{
+                                marginLeft: 'var(--spacing-sm)',
+                                fontSize: '0.75rem',
                                 color: 'var(--accent-orange)',
                                 background: 'rgba(245, 158, 11, 0.2)',
                                 padding: '2px 8px',
@@ -422,7 +422,7 @@ function MemoryPlayground() {
                           </div>
                         </div>
                       </div>
-                      
+
                       <div style={{ display: 'flex', gap: 'var(--spacing-sm)' }}>
                         {region.locked ? (
                           <button
@@ -467,11 +467,11 @@ function MemoryPlayground() {
                           style={{
                             fontSize: '0.75rem',
                             padding: '4px 10px',
-                            background: region.advice === opt.value 
-                              ? 'var(--accent-purple)' 
+                            background: region.advice === opt.value
+                              ? 'var(--accent-purple)'
                               : undefined,
-                            color: region.advice === opt.value 
-                              ? 'white' 
+                            color: region.advice === opt.value
+                              ? 'white'
                               : undefined
                           }}
                         >
@@ -493,7 +493,7 @@ function MemoryPlayground() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="card"
-          style={{ 
+          style={{
             marginTop: 'var(--spacing-xl)',
             background: 'rgba(239, 68, 68, 0.1)',
             borderLeft: '4px solid var(--accent-red)'
