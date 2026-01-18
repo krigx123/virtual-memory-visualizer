@@ -787,7 +787,286 @@ def reset_all():
     
     return jsonify({
         'success': True,
-        'message': 'All simulators reset to initial state'
+    })
+
+
+# =============================================================================
+# Memory Playground (Active OS Interaction)
+# =============================================================================
+
+import mmap
+import ctypes
+
+# Playground state - tracks allocated memory regions
+playground_state = {
+    'allocations': [],      # List of allocated regions
+    'total_allocated': 0,   # Total bytes allocated
+    'total_locked': 0,      # Total bytes locked
+    'page_faults_start': 0, # Page faults when started
+}
+
+# Load libc for mlock/munlock/madvise
+try:
+    libc = ctypes.CDLL('libc.so.6', use_errno=True)
+    MLOCK_AVAILABLE = True
+except:
+    MLOCK_AVAILABLE = False
+
+
+@app.route('/api/playground/allocate', methods=['POST'])
+def playground_allocate():
+    """Allocate a new memory region."""
+    data = request.get_json() or {}
+    size_mb = data.get('size_mb', 10)
+    touch = data.get('touch', True)  # Touch pages to cause real allocation
+    
+    size_bytes = size_mb * 1024 * 1024
+    
+    try:
+        # Create anonymous mmap (real memory allocation)
+        mm = mmap.mmap(-1, size_bytes, mmap.MAP_PRIVATE | mmap.MAP_ANONYMOUS)
+        
+        region_id = len(playground_state['allocations'])
+        
+        # Touch pages if requested (causes actual page faults)
+        pages_touched = 0
+        if touch:
+            page_size = 4096
+            for offset in range(0, size_bytes, page_size):
+                mm[offset] = 0x42  # Write to each page
+                pages_touched += 1
+        
+        region = {
+            'id': region_id,
+            'size_mb': size_mb,
+            'size_bytes': size_bytes,
+            'locked': False,
+            'advice': 'NORMAL',
+            'pages': size_bytes // 4096,
+            'pages_touched': pages_touched,
+            'mmap_obj': mm,
+            'address': ctypes.addressof(ctypes.c_char.from_buffer(mm))
+        }
+        
+        playground_state['allocations'].append(region)
+        playground_state['total_allocated'] += size_bytes
+        
+        return jsonify({
+            'success': True,
+            'region_id': region_id,
+            'size_mb': size_mb,
+            'pages_touched': pages_touched,
+            'message': f'Allocated {size_mb}MB ({pages_touched} pages touched)'
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/playground/lock', methods=['POST'])
+def playground_lock():
+    """Lock a memory region (mlock - prevent swapping)."""
+    data = request.get_json() or {}
+    region_id = data.get('region_id', 0)
+    
+    if not MLOCK_AVAILABLE:
+        return jsonify({'success': False, 'error': 'mlock not available on this system'})
+    
+    if region_id >= len(playground_state['allocations']):
+        return jsonify({'success': False, 'error': 'Invalid region ID'})
+    
+    region = playground_state['allocations'][region_id]
+    
+    if region['locked']:
+        return jsonify({'success': False, 'error': 'Region already locked'})
+    
+    try:
+        addr = region['address']
+        size = region['size_bytes']
+        
+        result = libc.mlock(ctypes.c_void_p(addr), ctypes.c_size_t(size))
+        if result != 0:
+            return jsonify({'success': False, 'error': f'mlock failed: errno {ctypes.get_errno()}'})
+        
+        region['locked'] = True
+        playground_state['total_locked'] += size
+        
+        return jsonify({
+            'success': True,
+            'message': f'Locked {region["size_mb"]}MB (cannot be swapped out)'
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/playground/unlock', methods=['POST'])
+def playground_unlock():
+    """Unlock a memory region (munlock)."""
+    data = request.get_json() or {}
+    region_id = data.get('region_id', 0)
+    
+    if not MLOCK_AVAILABLE:
+        return jsonify({'success': False, 'error': 'munlock not available'})
+    
+    if region_id >= len(playground_state['allocations']):
+        return jsonify({'success': False, 'error': 'Invalid region ID'})
+    
+    region = playground_state['allocations'][region_id]
+    
+    if not region['locked']:
+        return jsonify({'success': False, 'error': 'Region not locked'})
+    
+    try:
+        addr = region['address']
+        size = region['size_bytes']
+        
+        result = libc.munlock(ctypes.c_void_p(addr), ctypes.c_size_t(size))
+        if result != 0:
+            return jsonify({'success': False, 'error': f'munlock failed'})
+        
+        region['locked'] = False
+        playground_state['total_locked'] -= size
+        
+        return jsonify({
+            'success': True,
+            'message': f'Unlocked {region["size_mb"]}MB'
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/playground/advise', methods=['POST'])
+def playground_advise():
+    """Apply madvise hint to a memory region."""
+    data = request.get_json() or {}
+    region_id = data.get('region_id', 0)
+    advice = data.get('advice', 'NORMAL')
+    
+    if region_id >= len(playground_state['allocations']):
+        return jsonify({'success': False, 'error': 'Invalid region ID'})
+    
+    region = playground_state['allocations'][region_id]
+    
+    # Map advice strings to madvise constants
+    advice_map = {
+        'NORMAL': 0,      # MADV_NORMAL
+        'RANDOM': 1,      # MADV_RANDOM
+        'SEQUENTIAL': 2,  # MADV_SEQUENTIAL
+        'WILLNEED': 3,    # MADV_WILLNEED (prefetch)
+        'DONTNEED': 4,    # MADV_DONTNEED (can discard)
+    }
+    
+    if advice not in advice_map:
+        return jsonify({'success': False, 'error': f'Unknown advice: {advice}'})
+    
+    try:
+        mm = region['mmap_obj']
+        mm.madvise(advice_map[advice])
+        region['advice'] = advice
+        
+        descriptions = {
+            'NORMAL': 'Default access pattern',
+            'RANDOM': 'Expect random access (disable readahead)',
+            'SEQUENTIAL': 'Expect sequential access (aggressive readahead)',
+            'WILLNEED': 'Will need soon (prefetch into memory)',
+            'DONTNEED': 'Won\'t need soon (can be swapped out)'
+        }
+        
+        return jsonify({
+            'success': True,
+            'advice': advice,
+            'message': descriptions.get(advice, advice)
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/playground/free', methods=['POST'])
+def playground_free():
+    """Free a memory region."""
+    data = request.get_json() or {}
+    region_id = data.get('region_id', 0)
+    
+    if region_id >= len(playground_state['allocations']):
+        return jsonify({'success': False, 'error': 'Invalid region ID'})
+    
+    region = playground_state['allocations'][region_id]
+    
+    if region.get('freed'):
+        return jsonify({'success': False, 'error': 'Region already freed'})
+    
+    try:
+        # Unlock if locked
+        if region['locked'] and MLOCK_AVAILABLE:
+            libc.munlock(ctypes.c_void_p(region['address']), 
+                        ctypes.c_size_t(region['size_bytes']))
+            playground_state['total_locked'] -= region['size_bytes']
+        
+        # Close mmap
+        region['mmap_obj'].close()
+        region['freed'] = True
+        playground_state['total_allocated'] -= region['size_bytes']
+        
+        return jsonify({
+            'success': True,
+            'message': f'Freed region {region_id} ({region["size_mb"]}MB)'
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/playground/status', methods=['GET'])
+def playground_status():
+    """Get current playground status."""
+    regions = []
+    for r in playground_state['allocations']:
+        if not r.get('freed'):
+            regions.append({
+                'id': r['id'],
+                'size_mb': r['size_mb'],
+                'pages': r['pages'],
+                'locked': r['locked'],
+                'advice': r['advice']
+            })
+    
+    return jsonify({
+        'success': True,
+        'regions': regions,
+        'total_allocated_mb': playground_state['total_allocated'] / (1024 * 1024),
+        'total_locked_mb': playground_state['total_locked'] / (1024 * 1024),
+        'mlock_available': MLOCK_AVAILABLE
+    })
+
+
+@app.route('/api/playground/reset', methods=['POST'])
+def playground_reset():
+    """Free all allocations and reset playground."""
+    freed_count = 0
+    freed_mb = 0
+    
+    for region in playground_state['allocations']:
+        if not region.get('freed'):
+            try:
+                if region['locked'] and MLOCK_AVAILABLE:
+                    libc.munlock(ctypes.c_void_p(region['address']),
+                                ctypes.c_size_t(region['size_bytes']))
+                region['mmap_obj'].close()
+                freed_count += 1
+                freed_mb += region['size_mb']
+            except:
+                pass
+    
+    playground_state['allocations'] = []
+    playground_state['total_allocated'] = 0
+    playground_state['total_locked'] = 0
+    
+    return jsonify({
+        'success': True,
+        'message': f'Freed {freed_count} regions ({freed_mb}MB total)'
     })
 
 

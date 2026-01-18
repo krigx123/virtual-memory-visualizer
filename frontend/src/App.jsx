@@ -17,6 +17,7 @@ import ProcessView from './pages/ProcessView'
 import AddressTranslator from './pages/AddressTranslator'
 import TLBSimulator from './pages/TLBSimulator'
 import DemandPaging from './pages/DemandPaging'
+import MemoryPlayground from './pages/MemoryPlayground'
 import Learn from './pages/Learn'
 
 function App() {
@@ -63,6 +64,10 @@ function App() {
                 <HardDrive size={18} />
                 Demand Paging
               </NavLink>
+              <NavLink to="/playground" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                <Zap size={18} />
+                Memory Playground
+              </NavLink>
             </div>
 
             <div className="nav-section">
@@ -91,6 +96,7 @@ function App() {
             <Route path="/translate" element={<AddressTranslator />} />
             <Route path="/tlb" element={<TLBSimulator />} />
             <Route path="/paging" element={<DemandPaging />} />
+            <Route path="/playground" element={<MemoryPlayground />} />
             <Route path="/learn" element={<Learn />} />
           </Routes>
         </main>

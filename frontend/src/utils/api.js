@@ -143,6 +143,53 @@ export async function resetAll() {
 }
 
 // =============================================================================
+// Memory Playground API
+// =============================================================================
+
+export async function playgroundAllocate(size_mb, touch = true) {
+  return fetchAPI('/playground/allocate', {
+    method: 'POST',
+    body: JSON.stringify({ size_mb, touch })
+  })
+}
+
+export async function playgroundLock(region_id) {
+  return fetchAPI('/playground/lock', {
+    method: 'POST',
+    body: JSON.stringify({ region_id })
+  })
+}
+
+export async function playgroundUnlock(region_id) {
+  return fetchAPI('/playground/unlock', {
+    method: 'POST',
+    body: JSON.stringify({ region_id })
+  })
+}
+
+export async function playgroundAdvise(region_id, advice) {
+  return fetchAPI('/playground/advise', {
+    method: 'POST',
+    body: JSON.stringify({ region_id, advice })
+  })
+}
+
+export async function playgroundFree(region_id) {
+  return fetchAPI('/playground/free', {
+    method: 'POST',
+    body: JSON.stringify({ region_id })
+  })
+}
+
+export async function getPlaygroundStatus() {
+  return fetchAPI('/playground/status')
+}
+
+export async function playgroundReset() {
+  return fetchAPI('/playground/reset', { method: 'POST' })
+}
+
+// =============================================================================
 // Utility Functions
 // =============================================================================
 
