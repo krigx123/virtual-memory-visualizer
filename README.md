@@ -482,31 +482,63 @@ vmem> paging status
 
 ---
 
----
-
 ## 🛠️ CLI Command Reference
 
+### Process Commands
 | Command | Arguments | Description |
 |---------|-----------|-------------|
 | `ps` | - | List all processes (sorted by memory usage) |
 | `select` | `<pid>` | Select a process to analyze |
-| `maps` | - | Show memory regions for selected process |
-| `translate` | `<addr>` | Translate virtual to physical address |
-| `pagewalk` | `<addr>` | Show 4-level page table walk |
-| `stats` | - | Show memory statistics for selected process |
+| `unselect` | - | Deselect current process |
+
+### Memory Analysis (requires selected process)
+| Command | Arguments | Description |
+|---------|-----------|-------------|
+| `maps` | - | Show memory regions (from /proc/[pid]/maps) |
+| `translate` | `<addr>` | Translate virtual address to physical |
+| `pagewalk` | `<addr>` | Show detailed page table walk |
+| `stats` | - | Show memory statistics |
 | `faults` | - | Show page fault statistics |
-| `sysinfo` | - | Show system-wide memory information |
+
+### TLB Simulator
+| Command | Arguments | Description |
+|---------|-----------|-------------|
 | `tlb init` | `<size> [policy]` | Initialize TLB (LRU, FIFO, RANDOM, CLOCK) |
-| `tlb lookup` | `<addr>` | Check if address is in TLB |
-| `tlb access` | `<addr>` | Access address (updates TLB state) |
-| `tlb status` | - | Show TLB entries and stats |
-| `paging init` | `<frames> [policy]` | Initialize Paging Sim (2-64 frames) |
-| `paging access` | `<addr>` | Access page (triggers fault/eviction) |
-| `paging status` | - | Show frames and stats |
-| `mem alloc` | `<mb>` | Allocate memory (max 1000MB) |
-| `mem lock` | `<id>` | Lock region in memory (mlock) |
-| `mem advice` | `<id> <hint>` | Apply madvise hint (WILLNEED, etc.) |
+| `tlb lookup` | `<addr>` | Lookup address in TLB |
+| `tlb access` | `<addr>` | Access address (lookup + insert on miss) |
+| `tlb status` | - | Show TLB contents and statistics |
+| `tlb flush` | - | Flush all TLB entries |
+
+### Demand Paging Simulator
+| Command | Arguments | Description |
+|---------|-----------|-------------|
+| `paging init` | `<frames> [policy]` | Initialize Paging (LRU, FIFO, RANDOM, CLOCK) |
+| `paging access` | `<addr>` | Access page (may cause page fault) |
+| `paging status` | - | Show physical memory frames and statistics |
+| `paging flush` | - | Clear all frames |
+
+### Memory Playground (Active OS Interaction)
+| Command | Arguments | Description |
+|---------|-----------|-------------|
+| `mem alloc` | `<mb>` | Allocate memory using mmap() |
+| `mem lock` | `<id>` | Lock region with mlock() |
+| `mem unlock` | `<id>` | Unlock region with munlock() |
+| `mem advise` | `<id> <hint>` | Apply madvise() hint (WILLNEED, DONTNEED, etc.) |
 | `mem free` | `<id>` | Free allocated region |
+| `mem status` | - | Show all allocated regions |
+| `mem reset` | - | Free all regions |
+
+### System Information
+| Command | Arguments | Description |
+|---------|-----------|-------------|
+| `sysinfo` | - | Show system memory information |
+
+### Other
+| Command | Arguments | Description |
+|---------|-----------|-------------|
+| `help` | - | Show help message |
+| `clear` | - | Clear screen |
+| `exit` | - | Exit the shell |
 
 ---
 

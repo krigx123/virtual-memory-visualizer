@@ -66,6 +66,7 @@ static void print_help(void) {
     printf("Process Commands:\n");
     printf("  ps                     List all running processes\n");
     printf("  select <pid>           Select a process to analyze\n");
+    printf("  unselect               Deselect current process\n");
     printf("\n");
     printf("Memory Analysis (requires selected process):\n");
     printf("  maps                   Show memory regions (from /proc/[pid]/maps)\n");
@@ -206,6 +207,24 @@ static void cmd_select(const char *arg) {
     }
     
     printf("[OK] Selected process: %s (PID %d)\n", selected_name, selected_pid);
+}
+
+static void cmd_unselect(void) {
+    if (selected_pid < 0) {
+        printf("No process selected\n");
+        return;
+    }
+    
+    printf("[OK] Deselected process %d (%s)\n", selected_pid, selected_name);
+    selected_pid = -1;
+    selected_name[0] = '\0';
+    
+    /* Clear cached regions */
+    if (cached_regions != NULL) {
+        free(cached_regions);
+        cached_regions = NULL;
+        cached_region_count = 0;
+    }
 }
 
 static void cmd_maps(void) {
@@ -582,6 +601,9 @@ static void run_shell(void) {
         } else if (strcmp(cmd, "select") == 0) {
             cmd_select(arg1);
             
+        } else if (strcmp(cmd, "unselect") == 0) {
+            cmd_unselect();
+            
         } else if (strcmp(cmd, "maps") == 0) {
             cmd_maps();
             
@@ -611,7 +633,14 @@ static void run_shell(void) {
             cmd_paging(arg1, paging_arg);
             
         } else if (strcmp(cmd, "mem") == 0) {
-            cmd_playground(arg1, arg2);
+            /* Combine arg2 and arg3 for commands that need hints like "advise" */
+            char mem_arg[512];
+            if (arg3[0] != '\0') {
+                snprintf(mem_arg, sizeof(mem_arg), "%s %s", arg2, arg3);
+            } else {
+                snprintf(mem_arg, sizeof(mem_arg), "%s", arg2);
+            }
+            cmd_playground(arg1, mem_arg);
             
         } else if (strcmp(cmd, "sysinfo") == 0) {
             cmd_sysinfo();
