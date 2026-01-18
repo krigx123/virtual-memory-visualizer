@@ -584,7 +584,14 @@ static void run_shell(void) {
             cmd_tlb(arg1, arg2, arg3);
             
         } else if (strcmp(cmd, "paging") == 0) {
-            cmd_paging(arg1, arg2);
+            /* Combine arg2 and arg3 for paging commands that need both (e.g., "4 FIFO") */
+            char paging_arg[512];
+            if (arg3[0] != '\0') {
+                snprintf(paging_arg, sizeof(paging_arg), "%s %s", arg2, arg3);
+            } else {
+                snprintf(paging_arg, sizeof(paging_arg), "%s", arg2);
+            }
+            cmd_paging(arg1, paging_arg);
             
         } else if (strcmp(cmd, "mem") == 0) {
             cmd_playground(arg1, arg2);
