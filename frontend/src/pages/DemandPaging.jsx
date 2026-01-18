@@ -366,6 +366,9 @@ function DemandPaging() {
                   <Zap size={18} />
                   Access Page
                 </h3>
+                <span style={{ fontSize: '0.7rem', color: 'var(--accent-purple)', background: 'rgba(139, 92, 246, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>
+                  {pagingData?.policy || 'LRU'}
+                </span>
               </div>
               
               <div className="input-group" style={{ marginBottom: 'var(--spacing-md)' }}>
@@ -428,17 +431,52 @@ function DemandPaging() {
               
               <div className="input-group" style={{ marginBottom: 'var(--spacing-md)' }}>
                 <label>Addresses (comma/space separated)</label>
-                <textarea
+                <input
+                  type="text"
                   placeholder="0x1000, 0x2000, 0x3000, 0x1000"
                   value={sequenceInput}
                   onChange={(e) => setSequenceInput(e.target.value)}
-                  style={{ 
-                    minHeight: '60px', 
-                    resize: 'vertical',
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '0.85rem'
-                  }}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSequence()}
                 />
+              </div>
+
+              {/* Quick Sequence Buttons */}
+              <div style={{ marginBottom: 'var(--spacing-md)' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 'var(--spacing-sm)' }}>
+                  Demo Sequences:
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <button
+                    onClick={() => setSequenceInput('0x1000, 0x2000, 0x3000, 0x4000, 0x1000')}
+                    style={{
+                      padding: '6px 10px',
+                      background: 'var(--bg-tertiary)',
+                      border: '1px solid var(--border-primary)',
+                      borderRadius: 'var(--radius-sm)',
+                      color: 'var(--text-secondary)',
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                      textAlign: 'left'
+                    }}
+                  >
+                    Sequential (shows hit)
+                  </button>
+                  <button
+                    onClick={() => setSequenceInput('0x1000, 0x2000, 0x3000, 0x4000, 0x5000')}
+                    style={{
+                      padding: '6px 10px',
+                      background: 'var(--bg-tertiary)',
+                      border: '1px solid var(--border-primary)',
+                      borderRadius: 'var(--radius-sm)',
+                      color: 'var(--text-secondary)',
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                      textAlign: 'left'
+                    }}
+                  >
+                    All faults (causes eviction)
+                  </button>
+                </div>
               </div>
               
               <button 

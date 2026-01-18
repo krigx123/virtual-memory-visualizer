@@ -242,8 +242,8 @@ function TLBSimulator() {
                 <thead>
                   <tr>
                     <th>Index</th>
-                    <th>VPN</th>
-                    <th>PFN</th>
+                    <th>VPN <span style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>(Virtual Page #)</span></th>
+                    <th>PFN <span style={{ fontWeight: 'normal', fontSize: '0.65rem' }}>(Physical Frame #)</span></th>
                     <th>Valid</th>
                     <th>Last Access</th>
                   </tr>
@@ -288,10 +288,13 @@ function TLBSimulator() {
                   <Activity size={18} />
                   Access TLB
                 </h3>
+                <span style={{ fontSize: '0.7rem', color: 'var(--accent-purple)', background: 'rgba(139, 92, 246, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>
+                  {tlbData?.policy || 'LRU'}
+                </span>
               </div>
               
               <div className="input-group" style={{ marginBottom: 'var(--spacing-md)' }}>
-                <label>Virtual Address</label>
+                <label>Virtual Address <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>(extracts VPN - Virtual Page Number)</span></label>
                 <input
                   type="text"
                   placeholder="e.g., 0x7fff0000"
@@ -302,7 +305,7 @@ function TLBSimulator() {
               </div>
               
               <div className="input-group" style={{ marginBottom: 'var(--spacing-md)' }}>
-                <label>PFN (optional, for miss insertion)</label>
+                <label>PFN <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>(Physical Frame Number - auto if empty)</span></label>
                 <input
                   type="text"
                   placeholder="Auto-generated if empty"
@@ -319,6 +322,33 @@ function TLBSimulator() {
                 <Play size={18} />
                 Access Address
               </button>
+
+              {/* Quick Access Buttons */}
+              <div style={{ marginTop: 'var(--spacing-md)' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 'var(--spacing-sm)' }}>
+                  Quick Access:
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
+                    <button
+                      key={n}
+                      onClick={() => setAddressInput(`0x${n}000`)}
+                      style={{
+                        padding: '4px 8px',
+                        background: 'var(--bg-tertiary)',
+                        border: '1px solid var(--border-primary)',
+                        borderRadius: 'var(--radius-sm)',
+                        color: 'var(--text-secondary)',
+                        fontSize: '0.75rem',
+                        cursor: 'pointer',
+                        fontFamily: 'var(--font-mono)'
+                      }}
+                    >
+                      0x{n}000
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* Statistics */}
