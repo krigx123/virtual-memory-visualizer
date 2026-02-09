@@ -53,18 +53,21 @@ def run_vmem_command(*args):
         result = subprocess.run(
             cmd,
             capture_output=True,
-            text=True,
-            timeout=10
+            timeout=30
         )
         
-        if result.returncode != 0:
-            return {'success': False, 'error': result.stderr or 'Command failed'}
+        # Decode with error replacement for non-UTF-8 bytes
+        stdout = result.stdout.decode('utf-8', errors='replace')
+        stderr = result.stderr.decode('utf-8', errors='replace')
         
-        return json.loads(result.stdout)
+        if result.returncode != 0:
+            return {'success': False, 'error': stderr or 'Command failed'}
+        
+        return json.loads(stdout)
     except subprocess.TimeoutExpired:
         return {'success': False, 'error': 'Command timed out'}
-    except json.JSONDecodeError:
-        return {'success': False, 'error': 'Invalid JSON response from backend'}
+    except json.JSONDecodeError as e:
+        return {'success': False, 'error': f'Invalid JSON response from backend: {str(e)}'}
     except FileNotFoundError:
         return {'success': False, 'error': f'Backend not found at {VMEM_SHELL}. Please compile first.'}
     except Exception as e:

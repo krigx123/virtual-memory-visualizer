@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { 
-  Cpu, 
-  Search, 
-  MapPin, 
+import {
+  Cpu,
+  Search,
+  MapPin,
   RefreshCw,
   AlertCircle,
   ChevronRight
@@ -17,12 +17,15 @@ function ProcessView() {
   const [stats, setStats] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(false)
+  const cacheRef = useRef({})
 
   useEffect(() => {
     loadProcesses()
   }, [])
 
   async function loadProcesses() {
+    // Clear cache on refresh
+    cacheRef.current = {}
     const result = await getProcesses()
     if (result.success) {
       const sorted = (result.data || []).sort((a, b) => b.memory_kb - a.memory_kb)
@@ -33,23 +36,36 @@ function ProcessView() {
   async function selectProcess(pid) {
     setSelectedPid(pid)
     setLoading(true)
-    
+
+    // Check cache first
+    if (cacheRef.current[pid]) {
+      setRegions(cacheRef.current[pid].maps)
+      setStats(cacheRef.current[pid].stats)
+      setLoading(false)
+      return
+    }
+
     // Load memory regions
     const mapsResult = await getMemoryMaps(pid)
     if (mapsResult.success) {
       setRegions(mapsResult.data || [])
     }
-    
+
     // Load memory stats
     const statsResult = await getMemoryStats(pid)
     if (statsResult.success) {
       setStats(statsResult.data)
     }
-    
+
+    // Store in cache
+    if (mapsResult.success) {
+      cacheRef.current[pid] = { maps: mapsResult.data || [], stats: statsResult.data }
+    }
+
     setLoading(false)
   }
 
-  const filteredProcesses = processes.filter(p => 
+  const filteredProcesses = processes.filter(p =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.pid.toString().includes(searchTerm)
   )
@@ -76,7 +92,7 @@ function ProcessView() {
               <Cpu size={18} />
               Processes
             </h3>
-            <button 
+            <button
               onClick={loadProcesses}
               className="btn btn-secondary"
               style={{ padding: '0.4rem 0.8rem' }}
@@ -84,14 +100,14 @@ function ProcessView() {
               <RefreshCw size={14} />
             </button>
           </div>
-          
+
           {/* Search */}
           <div className="input-group" style={{ marginBottom: 'var(--spacing-md)' }}>
             <div style={{ position: 'relative' }}>
-              <Search size={16} style={{ 
-                position: 'absolute', 
-                left: '12px', 
-                top: '50%', 
+              <Search size={16} style={{
+                position: 'absolute',
+                left: '12px',
+                top: '50%',
                 transform: 'translateY(-50%)',
                 color: 'var(--text-muted)'
               }} />
@@ -200,8 +216,8 @@ function ProcessView() {
                 ) : (
                   <div className="memory-map">
                     {/* Header */}
-                    <div className="memory-region" style={{ 
-                      background: 'var(--bg-tertiary)', 
+                    <div className="memory-region" style={{
+                      background: 'var(--bg-tertiary)',
                       fontWeight: '600',
                       fontSize: '0.7rem',
                       color: 'var(--text-muted)',
@@ -215,13 +231,13 @@ function ProcessView() {
                       <span style={{ textAlign: 'right' }}>Size</span>
                       <span>Type</span>
                     </div>
-                    
+
                     {regions.map((region, index) => (
                       <motion.div
                         key={index}
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.02 }}
+                        transition={{ delay: regions.length > 50 ? 0 : index * 0.02 }}
                         className="memory-region"
                       >
                         <span className="address">{region.start_addr}</span>
@@ -248,10 +264,10 @@ function ProcessView() {
               </motion.div>
             </>
           ) : (
-            <div className="card" style={{ 
-              display: 'flex', 
+            <div className="card" style={{
+              display: 'flex',
               flexDirection: 'column',
-              alignItems: 'center', 
+              alignItems: 'center',
               justifyContent: 'center',
               minHeight: '400px',
               color: 'var(--text-muted)'

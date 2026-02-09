@@ -112,7 +112,7 @@ int json_escape_string(const char *src, char *dest, size_t len) {
     size_t j = 0;
     
     for (size_t i = 0; src[i] != '\0' && j < len - 1; i++) {
-        char c = src[i];
+        unsigned char c = (unsigned char)src[i];
         
         switch (c) {
             case '"':
@@ -140,11 +140,28 @@ int json_escape_string(const char *src, char *dest, size_t len) {
                 dest[j++] = '\\';
                 dest[j++] = 't';
                 break;
+            case '\b':
+                if (j + 2 >= len) goto truncated;
+                dest[j++] = '\\';
+                dest[j++] = 'b';
+                break;
+            case '\f':
+                if (j + 2 >= len) goto truncated;
+                dest[j++] = '\\';
+                dest[j++] = 'f';
+                break;
             default:
                 if (c >= 32 && c < 127) {
+                    /* Printable ASCII */
+                    dest[j++] = c;
+                } else if (c < 32) {
+                    /* Control character: escape as \u00XX */
+                    if (j + 6 >= len) goto truncated;
+                    j += snprintf(dest + j, len - j, "\\u%04x", c);
+                } else {
+                    /* UTF-8 byte: pass through (valid in JSON strings) */
                     dest[j++] = c;
                 }
-                /* Skip other control characters */
                 break;
         }
     }
@@ -214,8 +231,12 @@ int json_memory_regions(const MemoryRegion *regions, int count, JsonBuffer *buf)
         
         char escaped_path[512];
         char escaped_type[64];
+        char escaped_perms[16];
+        char escaped_device[32];
         json_escape_string(regions[i].pathname, escaped_path, sizeof(escaped_path));
         json_escape_string(regions[i].region_type, escaped_type, sizeof(escaped_type));
+        json_escape_string(regions[i].permissions, escaped_perms, sizeof(escaped_perms));
+        json_escape_string(regions[i].device, escaped_device, sizeof(escaped_device));
         
         json_appendf(buf,
             "{\"start_addr\":\"0x%lx\",\"end_addr\":\"0x%lx\","
@@ -224,9 +245,9 @@ int json_memory_regions(const MemoryRegion *regions, int count, JsonBuffer *buf)
             "\"pathname\":\"%s\",\"region_type\":\"%s\",\"size\":%lu}",
             regions[i].start_addr,
             regions[i].end_addr,
-            regions[i].permissions,
+            escaped_perms,
             regions[i].offset,
-            regions[i].device,
+            escaped_device,
             regions[i].inode,
             escaped_path,
             escaped_type,
