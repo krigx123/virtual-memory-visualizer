@@ -149,20 +149,25 @@ cd /mnt/c/Users/YourName/path/to/virtual-memory-visualizer/backend
 make
 ```
 
-**2. Install Python Deps (WSL)**
+**2. Test CLI (Optional)**
+```bash
+sudo make run
+```
+
+**3. Install Python Deps (WSL)**
 ```bash
 # Ubuntu/Debian
 sudo apt update && sudo apt install -y python3-pip python3-flask
 pip3 install flask-cors
 ```
 
-**3. Run API (WSL)**
+**4. Run API (WSL)**
 ```bash
 cd ../api
 sudo python3 app.py
 ```
 
-**4. Run Frontend (PowerShell)**
+**5. Run Frontend (PowerShell)**
 ```powershell
 cd ..\frontend
 npm install
